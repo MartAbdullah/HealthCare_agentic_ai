@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SendIcon, Loader2Icon, UsersIcon, AlertCircleIcon, CheckCircleIcon } from '../icons';
+import { API_ENDPOINTS } from '../config/api';
 
 interface SpecialistAnalysis {
   specialist: string;
@@ -102,7 +103,7 @@ export default function IntermediateAgentPage({ specialistsCount }: Intermediate
     setActiveTab(null);
 
     try {
-      const response = await fetch('http://localhost:8001/intermediate/analyze', {
+      const response = await fetch(API_ENDPOINTS.intermediate.analyze, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UploadIcon, Loader2Icon, Edit2Icon, CheckIcon, XIcon, FileTextIcon, CheckCircleIcon } from '../icons';
+import { API_ENDPOINTS } from '../config/api';
 import Footer from '../components/Footer';
 
 interface ExtractionResult {
@@ -76,7 +77,7 @@ export default function AdvancedAgentPage() {
   useEffect(() => {
     const loadStorageFiles = async () => {
       try {
-        const response = await fetch('http://localhost:8001/advanced/files');
+        const response = await fetch(API_ENDPOINTS.advanced.files);
         if (response.ok) {
           const data = await response.json();
           setStorageFiles(data.files || []);
@@ -116,7 +117,7 @@ export default function AdvancedAgentPage() {
       const formData = new FormData();
       files.forEach((file) => formData.append('files', file));
 
-      const response = await fetch('http://localhost:8001/advanced/upload', {
+      const response = await fetch(API_ENDPOINTS.advanced.upload, {
         method: 'POST',
         body: formData,
       });
@@ -151,7 +152,7 @@ export default function AdvancedAgentPage() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8001/advanced/process-storage', {
+      const response = await fetch(API_ENDPOINTS.advanced.processStorage, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +190,7 @@ export default function AdvancedAgentPage() {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8001/advanced/approve', {
+      const response = await fetch(API_ENDPOINTS.advanced.approve, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

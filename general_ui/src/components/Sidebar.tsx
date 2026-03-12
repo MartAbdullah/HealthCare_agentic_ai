@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { HomeIcon, ZapIcon, BrainIcon, DatabaseIcon, StethoscopeIcon, UserIcon } from '../icons';
+import { API_ENDPOINTS } from '../config/api';
 import logoImg from '../icons/logo2.png';
 
 interface SidebarProps {
@@ -51,7 +52,7 @@ export default function Sidebar({ specialistsCount = 3, onSpecialistsCountChange
   useEffect(() => {
     const checkBackendStatus = async () => {
       try {
-        const response = await fetch('http://localhost:8001/health', {
+        const response = await fetch(API_ENDPOINTS.health, {
           method: 'GET',
         });
         if (response.ok) {

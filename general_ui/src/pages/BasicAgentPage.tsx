@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SendIcon, Loader2Icon, CheckCircleIcon, AlertCircleIcon } from '../icons';
+import { API_ENDPOINTS } from '../config/api';
 
 interface AnalysisResult {
   final_summary: string;
@@ -74,7 +75,7 @@ export default function BasicAgentPage() {
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:8001/basic/analyze', {
+      const response = await fetch(API_ENDPOINTS.basic.analyze, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

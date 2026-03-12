@@ -10,6 +10,8 @@ load_dotenv()
 
 # Model konfigürasyonu
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class AgentState(TypedDict):
     input_text: str
@@ -27,10 +29,14 @@ def generator_node(state: AgentState):
     if feedback:
         prompt += f"\n\nPrevious feedback to address: {feedback}"
     
+    # Determine API key based on model
+    api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+    
     response = completion(
         model=LLM_MODEL,
         messages=[{"role": "user", "content": prompt}],
-        temperature=0.2
+        temperature=0.2,
+        api_key=api_key
     )
     
     draft = response.choices[0].message.content
@@ -54,10 +60,14 @@ def critic_node(state: AgentState):
     )
     
     try:
+        # Determine API key based on model
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        
         response = completion(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.0
+            temperature=0.0,
+            api_key=api_key
         )
         
         response_text = response.choices[0].message.content.strip()

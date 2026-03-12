@@ -1,68 +1,46 @@
 """
-Consolidated FastAPI server combining all three medical agents:
-1. Basic Agent - Patient symptom analysis
-2. Intermediate Agent - Multi-specialist consultation
-3. Advanced Agent - Clinical document processing with SOAP notes
+Consolidated Medical Agents API v2.0
+Combines three specialized medical AI agents in a single FastAPI server:
+1. Basic Agent (Patient Intake) - Reflection loop for symptom analysis
+2. Intermediate Agent (Specialist Consultation) - Multi-specialist analysis
+3. Advanced Agent (Clinical Document) - Document processing with SOAP notes
 """
 
-import sys
 import os
-from pathlib import Path
-import importlib.util
-
-# Add agent directories to Python path
-base_dir = Path(__file__).parent.parent
-
-# Load agents by adding to sys.path dynamically
-def load_agent_module(agent_path: str, module_api_dir: str):
-    """Load agent module after adding its directory to sys.path."""
-    sys.path.insert(0, module_api_dir)
-    spec = importlib.util.spec_from_file_location("agent_temp", agent_path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    sys.path.remove(module_api_dir)  # Clean up sys.path
-    return module
-
-# Load each agent
-basic_api_dir = str(base_dir / "01_basic_agent" / "api")
-intermediate_api_dir = str(base_dir / "02_intermediate_agent" / "api")
-advanced_api_dir = str(base_dir / "03_advanced_agent" / "api")
-
-basic_agent_module = load_agent_module(
-    str(base_dir / "01_basic_agent" / "api" / "agent.py"),
-    basic_api_dir
-)
-intermediate_agent_module = load_agent_module(
-    str(base_dir / "02_intermediate_agent" / "api" / "agent.py"),
-    intermediate_api_dir
-)
-advanced_agent_module = load_agent_module(
-    str(base_dir / "03_advanced_agent" / "api" / "agent.py"),
-    advanced_api_dir
-)
+from typing import List
+from datetime import datetime
+import uuid
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
-import uuid
-import csv
-from pathlib import Path as PathlibPath
+import uvicorn
 
-from PyPDF2 import PdfReader
+# Import agent modules from local files
+from patient_intake_agent import app as patient_intake_app
+from specialist_consultancy_agent import app as specialist_app
+from medical_document_agent import start_workflow, update_workflow_and_resume
 
-# Extract the objects we need from each agent module
-basic_graph = basic_agent_module.app
-intermediate_agent = intermediate_agent_module
-start_workflow = advanced_agent_module.start_workflow
-update_workflow_and_resume = advanced_agent_module.update_workflow_and_resume
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
 
-# Create main FastAPI app
+API_HOST = os.getenv("API_HOST", "0.0.0.0")
+API_PORT = int(os.getenv("API_PORT", 8001))
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.path.dirname(__file__), "data"))
+
+# Create data directory if it doesn't exist
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+# ============================================================================
+# FASTAPI APP SETUP
+# ============================================================================
+
 app = FastAPI(
-    title="Consolidated Medical Agents API",
-    description="Multi-agent medical AI system combining basic analysis, specialist consultation, and clinical document processing",
-    version="1.0.0"
+    title="Healthcare Agentic AI API",
+    description="Multi-agent medical AI system combining symptom analysis, specialist consultation, and clinical document processing",
+    version="2.0.0"
 )
 
 # Add CORS middleware
@@ -75,170 +53,120 @@ app.add_middleware(
 )
 
 # ============================================================================
-# BASIC AGENT - Models
+# REQUEST/RESPONSE MODELS
 # ============================================================================
+
+class HealthResponse(BaseModel):
+    """Health check response"""
+    status: str
+    timestamp: str = None
+    
+    def __init__(self, **data):
+        if 'timestamp' not in data:
+            data['timestamp'] = datetime.now().isoformat()
+        super().__init__(**data)
+
 
 class BasicAnalyzeRequest(BaseModel):
+    """Patient intake analysis request"""
     text: str
 
-class BasicAnalyzeResponse(BaseModel):
-    final_summary: str
-    history: list[str]
 
-# ============================================================================
-# INTERMEDIATE AGENT - Models
-# ============================================================================
+class BasicAnalyzeResponse(BaseModel):
+    """Patient intake analysis response"""
+    final_summary: str
+    history: List[str]
+
 
 class IntermediateAnalyzeRequest(BaseModel):
+    """Specialist consultation request"""
     case: str
     top_k: int = 5
 
+
 class SpecialistAssessment(BaseModel):
+    """Single specialist assessment"""
     specialist: str
     assessment: str
 
+
 class IntermediateAnalyzeResponse(BaseModel):
+    """Specialist consultation response"""
     case_summary: str
     specialist_assessments: List[SpecialistAssessment]
     unified_summary: str
     specialists_count: int
 
-# ============================================================================
-# ADVANCED AGENT - Models
-# ============================================================================
 
 class ProcessStorageRequest(BaseModel):
-    """Request to process files from storage directory."""
-    filenames: list[str]
+    """Request to process files from storage"""
+    filenames: List[str]
+
 
 class ApproveRequest(BaseModel):
-    """Request to approve and finalize SOAP note."""
+    """Request to approve SOAP note"""
     thread_id: str
     updated_soap: str
 
-class HealthResponse(BaseModel):
-    """Health check response."""
-    status: str
 
 class FilesResponse(BaseModel):
-    """List of available files in storage."""
-    files: list[str]
+    """List of available files"""
+    files: List[str]
+
+
+class UploadResponse(BaseModel):
+    """Upload response"""
+    thread_id: str
+    status: str
+    soap_draft: str
+    extractions: dict
+
+
+class ApproveResponse(BaseModel):
+    """Approval response"""
+    status: str
+    final_soap_note: str
 
 # ============================================================================
-# ADVANCED AGENT - Configuration
-# ============================================================================
-
-DATA_DIR = os.getenv("DATA_DIR", "./data")
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
-
-# ============================================================================
-# ADVANCED AGENT - Text extraction helpers
-# ============================================================================
-
-def _extract_text_from_pdf(file_path: str) -> str:
-    """Extract text from PDF file."""
-    try:
-        with open(file_path, 'rb') as f:
-            reader = PdfReader(f)
-            text = ""
-            for page in reader.pages:
-                text += page.extract_text() + "\n"
-        return text
-    except Exception as e:
-        raise ValueError(f"Failed to read PDF: {str(e)}")
-
-def _extract_text_from_txt(file_path: str) -> str:
-    """Extract text from TXT file."""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    except Exception as e:
-        raise ValueError(f"Failed to read TXT: {str(e)}")
-
-def _extract_text_from_csv(file_path: str) -> str:
-    """Extract text from CSV file."""
-    try:
-        text = ""
-        with open(file_path, 'r', encoding='utf-8') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                text += " | ".join(row) + "\n"
-        return text
-    except Exception as e:
-        raise ValueError(f"Failed to read CSV: {str(e)}")
-
-def _extract_text_from_upload(file: UploadFile) -> str:
-    """Extract text from uploaded file based on extension."""
-    file_ext = PathlibPath(file.filename).suffix.lower()
-    
-    # Read file content
-    content = file.file.read()
-    
-    if file_ext == ".pdf":
-        # For PDF, we need to save to temp file first
-        temp_path = f"/tmp/{file.filename}"
-        with open(temp_path, 'wb') as f:
-            f.write(content)
-        text = _extract_text_from_pdf(temp_path)
-        os.remove(temp_path)
-        return text
-    elif file_ext == ".txt":
-        return content.decode('utf-8')
-    elif file_ext == ".csv":
-        # For CSV, save to temp file
-        temp_path = f"/tmp/{file.filename}"
-        with open(temp_path, 'wb') as f:
-            f.write(content)
-        text = _extract_text_from_csv(temp_path)
-        os.remove(temp_path)
-        return text
-    else:
-        raise ValueError(f"Unsupported file type: {file_ext}")
-
-def _extract_text_from_path(file_path: str) -> str:
-    """Extract text from file on disk based on extension."""
-    if not os.path.exists(file_path):
-        raise ValueError(f"File not found: {file_path}")
-    
-    file_ext = PathlibPath(file_path).suffix.lower()
-    
-    if file_ext == ".pdf":
-        return _extract_text_from_pdf(file_path)
-    elif file_ext == ".txt":
-        return _extract_text_from_txt(file_path)
-    elif file_ext == ".csv":
-        return _extract_text_from_csv(file_path)
-    else:
-        raise ValueError(f"Unsupported file type: {file_ext}")
-
-# ============================================================================
-# HEALTH CHECK - Global
+# HEALTH CHECK ENDPOINTS
 # ============================================================================
 
 @app.get("/health", response_model=HealthResponse)
-async def health_check():
-    """Global health check endpoint."""
-    return {"status": "ok"}
+async def global_health():
+    """Global health check endpoint"""
+    return HealthResponse(status="ok")
+
 
 # ============================================================================
-# BASIC AGENT ENDPOINTS - /basic/*
+# BASIC AGENT ENDPOINTS - Patient Intake (Reflection Loop)
 # ============================================================================
 
 @app.get("/basic/health", response_model=HealthResponse)
-async def basic_health_check():
-    """Health check endpoint for Basic Agent."""
-    return {"status": "ok"}
+async def basic_health():
+    """Health check for Basic Agent"""
+    return HealthResponse(status="ok")
+
 
 @app.post("/basic/analyze", response_model=BasicAnalyzeResponse)
-async def basic_analyze_symptoms(request: BasicAnalyzeRequest):
+async def basic_analyze(request: BasicAnalyzeRequest):
     """
     Analyze patient symptoms using Basic Agent.
     
-    Takes patient symptom text and generates a professional medical summary.
+    Uses a reflection loop (Generator → Critic) to produce a professional
+    medical summary that passes safety and accuracy checks.
+    
+    Args:
+        request: Contains patient symptom text
+        
+    Returns:
+        final_summary: Approved medical summary
+        history: Agent thinking process (Generator and Critic steps)
     """
+    if not request.text or not request.text.strip():
+        raise HTTPException(status_code=400, detail="Text cannot be empty")
+    
     try:
-        # LangGraph invoke - recursion_limit=5
+        # Initialize state
         initial_state = {
             "input_text": request.text,
             "messages": [],
@@ -247,45 +175,59 @@ async def basic_analyze_symptoms(request: BasicAnalyzeRequest):
             "is_approved": False
         }
         
-        result = basic_graph.invoke(
-            initial_state, 
+        # Run the agent graph (max 5 iterations)
+        result = patient_intake_app.invoke(
+            initial_state,
             config={"recursion_limit": 5}
         )
         
-        return {
-            "final_summary": result["draft"],
-            "history": result["messages"]
-        }
+        return BasicAnalyzeResponse(
+            final_summary=result.get("draft", ""),
+            history=result.get("messages", [])
+        )
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing symptoms: {str(e)}"
+        )
 
 # ============================================================================
-# INTERMEDIATE AGENT ENDPOINTS - /intermediate/*
+# INTERMEDIATE AGENT ENDPOINTS - Specialist Consultation (Fan-Out)
 # ============================================================================
 
 @app.get("/intermediate/health", response_model=HealthResponse)
-async def intermediate_health_check():
-    """Health check endpoint for Intermediate Agent."""
-    return {"status": "ok"}
+async def intermediate_health():
+    """Health check for Intermediate Agent"""
+    return HealthResponse(status="ok")
+
 
 @app.post("/intermediate/analyze", response_model=IntermediateAnalyzeResponse)
 async def intermediate_analyze(request: IntermediateAnalyzeRequest):
     """
-    Analyze medical case with multiple specialists using Intermediate Agent.
+    Analyze medical case using multiple specialists.
+    
+    Routes the case to the most relevant specialists (selected by supervisor),
+    runs them in parallel, and aggregates their assessments into a unified summary.
     
     Args:
-        case: Medical case description
-        top_k: Number of specialists to consult (1-20, default 5)
-    
+        request: Contains case description and number of specialists (top_k)
+        
     Returns:
-        Response with specialist assessments and final summary
+        case_summary: Truncated version of input case
+        specialist_assessments: List of specialist opinions
+        unified_summary: Synthesized final assessment
+        specialists_count: Number of specialists consulted
     """
     # Validate top_k
     if not (1 <= request.top_k <= 20):
-        raise HTTPException(status_code=400, detail="top_k must be between 1 and 20")
+        raise HTTPException(
+            status_code=400,
+            detail="top_k must be between 1 and 20"
+        )
     
-    if not request.case or len(request.case.strip()) == 0:
-        raise HTTPException(status_code=400, detail="case cannot be empty")
+    if not request.case or not request.case.strip():
+        raise HTTPException(status_code=400, detail="Case cannot be empty")
     
     try:
         # Initialize state
@@ -299,72 +241,96 @@ async def intermediate_analyze(request: IntermediateAnalyzeRequest):
         }
         
         # Run the agent graph
-        result = intermediate_agent.app.invoke(initial_state)
+        result = specialist_app.invoke(initial_state)
         
-        # Format assessments: convert from "role" to "specialist" field
+        # Format assessments
         specialist_assessments = [
             SpecialistAssessment(
-                specialist=a["role"],
-                assessment=a["assessment"]
+                specialist=a.get("role", "Unknown"),
+                assessment=a.get("assessment", "")
             )
-            for a in result["assessments"]
+            for a in result.get("assessments", [])
         ]
         
-        # Create case summary from first 500 chars of case
-        case_summary = request.case[:500] + ("..." if len(request.case) > 500 else "")
+        # Create case summary (first 500 chars)
+        case_summary = request.case[:500]
+        if len(request.case) > 500:
+            case_summary += "..."
         
         return IntermediateAnalyzeResponse(
             case_summary=case_summary,
             specialist_assessments=specialist_assessments,
-            unified_summary=result["final_summary"],
+            unified_summary=result.get("final_summary", ""),
             specialists_count=len(specialist_assessments)
         )
         
     except Exception as e:
-        import traceback
-        print(f"Detailed error: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error analyzing case: {str(e)}"
+        )
 
 # ============================================================================
-# ADVANCED AGENT ENDPOINTS - /advanced/*
+# ADVANCED AGENT ENDPOINTS - Clinical Document Processing
 # ============================================================================
 
 @app.get("/advanced/health", response_model=HealthResponse)
-async def advanced_health_check():
-    """Health check endpoint for Advanced Agent."""
-    return {"status": "ok"}
+async def advanced_health():
+    """Health check for Advanced Agent"""
+    return HealthResponse(status="ok")
+
 
 @app.get("/advanced/files", response_model=FilesResponse)
 async def list_files():
-    """List available files in storage directory."""
+    """
+    List available files in storage directory.
+    
+    Returns:
+        files: List of PDF, TXT, and CSV filenames in data directory
+    """
     try:
         if not os.path.exists(DATA_DIR):
-            return {"files": []}
+            return FilesResponse(files=[])
         
         files = [
             f for f in os.listdir(DATA_DIR)
             if f.endswith(('.pdf', '.txt', '.csv'))
         ]
-        return {"files": sorted(files)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/advanced/upload")
-async def upload_files(files: list[UploadFile] = File(...)):
-    """
-    Upload and process clinical documents using Advanced Agent.
-    
-    Concatenates multiple files with section headers.
-    Returns thread_id, status, soap_draft, and extractions.
-    """
-    try:
-        if not files:
-            raise HTTPException(status_code=400, detail="No files provided")
+        return FilesResponse(files=sorted(files))
         
-        # Extract and concatenate text from all files
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error listing files: {str(e)}"
+        )
+
+
+@app.post("/advanced/upload", response_model=UploadResponse)
+async def upload_and_process(files: List[UploadFile] = File(...)):
+    """
+    Upload and process clinical documents.
+    
+    Extracts text from PDF, TXT, or CSV files, runs the document processing
+    pipeline, and returns the SOAP draft for human review.
+    
+    Args:
+        files: List of clinical document files to process
+        
+    Returns:
+        thread_id: Unique identifier for this processing session
+        status: Current status (awaiting_approval)
+        soap_draft: Generated SOAP note draft
+        extractions: Extracted conditions, medications, and codes
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+    
+    try:
+        # Concatenate text from all files
         combined_text = ""
         for file in files:
-            text = _extract_text_from_upload(file)
+            content = await file.read()
+            text = content.decode('utf-8')
             combined_text += f"\n=== {file.filename} ===\n{text}\n"
         
         # Generate thread ID
@@ -373,34 +339,52 @@ async def upload_files(files: list[UploadFile] = File(...)):
         # Start workflow
         result = start_workflow(thread_id, combined_text)
         
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/advanced/process-storage")
-async def process_storage(request: ProcessStorageRequest):
-    """
-    Process documents from storage directory using Advanced Agent.
-    
-    Takes a list of filenames and processes them.
-    Returns thread_id, status, soap_draft, and extractions.
-    """
-    try:
-        if not request.filenames:
-            raise HTTPException(status_code=400, detail="No filenames provided")
+        return UploadResponse(**result)
         
-        # Extract and concatenate text from all files
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error processing files: {str(e)}"
+        )
+
+
+@app.post("/advanced/process-storage", response_model=UploadResponse)
+async def process_storage_files(request: ProcessStorageRequest):
+    """
+    Process documents from storage directory.
+    
+    Reads files from the data directory, concatenates them, and runs
+    the document processing pipeline.
+    
+    Args:
+        request: Contains list of filenames to process
+        
+    Returns:
+        thread_id: Unique identifier for this processing session
+        status: Current status (awaiting_approval)
+        soap_draft: Generated SOAP note draft
+        extractions: Extracted conditions, medications, and codes
+    """
+    if not request.filenames:
+        raise HTTPException(status_code=400, detail="No filenames provided")
+    
+    try:
         combined_text = ""
+        
         for filename in request.filenames:
             file_path = os.path.join(DATA_DIR, filename)
+            
             if not os.path.exists(file_path):
                 raise HTTPException(
                     status_code=404,
                     detail=f"File not found: {filename}"
                 )
             
-            text = _extract_text_from_path(file_path)
-            combined_text += f"\n=== {filename} ===\n{text}\n"
+            # Read file content
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            combined_text += f"\n=== {filename} ===\n{content}\n"
         
         # Generate thread ID
         thread_id = str(uuid.uuid4())
@@ -408,71 +392,101 @@ async def process_storage(request: ProcessStorageRequest):
         # Start workflow
         result = start_workflow(thread_id, combined_text)
         
-        return result
+        return UploadResponse(**result)
+        
     except HTTPException as e:
         raise e
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error processing files: {str(e)}"
+        )
 
-@app.post("/advanced/approve")
-async def approve_soap(request: ApproveRequest):
+
+@app.post("/advanced/approve", response_model=ApproveResponse)
+async def approve_soap_note(request: ApproveRequest):
     """
-    Approve and finalize SOAP note after human review using Advanced Agent.
+    Approve and finalize SOAP note after human review.
     
-    Resumes workflow with clinician-edited SOAP note.
-    Returns status and final_soap_note.
+    Resumes the workflow with the clinician-edited SOAP note and completes
+    the processing pipeline.
+    
+    Args:
+        request: Contains thread_id and updated SOAP note
+        
+    Returns:
+        status: Processing status (completed)
+        final_soap_note: Final approved SOAP note
     """
+    if not request.thread_id or not request.updated_soap:
+        raise HTTPException(
+            status_code=400,
+            detail="thread_id and updated_soap are required"
+        )
+    
     try:
-        if not request.thread_id or not request.updated_soap:
-            raise HTTPException(
-                status_code=400,
-                detail="thread_id and updated_soap are required"
-            )
-        
-        # Resume workflow with updated SOAP
         result = update_workflow_and_resume(request.thread_id, request.updated_soap)
+        return ApproveResponse(**result)
         
-        return result
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=400,
+            detail=f"Error approving SOAP note: {str(e)}"
+        )
 
 # ============================================================================
-# Root endpoint - Shows available agents
+# ROOT ENDPOINT
 # ============================================================================
 
 @app.get("/")
 async def root():
-    """Root endpoint showing available agents."""
+    """API root endpoint with agent information"""
     return {
-        "message": "Consolidated Medical Agents API",
+        "message": "Healthcare Agentic AI API v2.0",
         "agents": {
             "basic": {
-                "description": "Basic symptom analysis agent",
-                "endpoints": [
-                    "GET /basic/health",
-                    "POST /basic/analyze"
-                ]
+                "name": "Patient Intake Agent",
+                "description": "Reflection loop for symptom analysis (Generator → Critic)",
+                "endpoints": {
+                    "health": "/basic/health",
+                    "analyze": "/basic/analyze"
+                }
             },
             "intermediate": {
-                "description": "Multi-specialist consultation agent",
-                "endpoints": [
-                    "GET /intermediate/health",
-                    "POST /intermediate/analyze"
-                ]
+                "name": "Specialist Consultation Agent",
+                "description": "Multi-specialist analysis with supervisor routing and parallel execution",
+                "endpoints": {
+                    "health": "/intermediate/health",
+                    "analyze": "/intermediate/analyze"
+                }
             },
             "advanced": {
-                "description": "Clinical document processing with SOAP notes",
-                "endpoints": [
-                    "GET /advanced/health",
-                    "GET /advanced/files",
-                    "POST /advanced/upload",
-                    "POST /advanced/process-storage",
-                    "POST /advanced/approve"
-                ]
+                "name": "Clinical Document Agent",
+                "description": "Document processing with SOAP note generation and human-in-the-loop review",
+                "endpoints": {
+                    "health": "/advanced/health",
+                    "upload": "/advanced/upload",
+                    "process_storage": "/advanced/process-storage",
+                    "approve": "/advanced/approve",
+                    "list_files": "/advanced/files"
+                }
             }
         }
     }
 
+
+# ============================================================================
+# APPLICATION ENTRY POINT
+# ============================================================================
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    print(f"Starting Healthcare API on {API_HOST}:{API_PORT}")
+    print(f"Data directory: {DATA_DIR}")
+    print(f"API docs: http://{API_HOST}:{API_PORT}/docs")
+    
+    uvicorn.run(
+        app,
+        host=API_HOST,
+        port=API_PORT,
+        log_level="info"
+    )

@@ -12,6 +12,8 @@ load_dotenv()
 
 # Model configuration
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Specialist Registry
 SPECIALISTS = {
@@ -130,10 +132,14 @@ Example: ["cardiologist", "pulmonologist", "nephrologist"]
 Return only the JSON array, no explanation."""
 
     try:
+        # Determine API key based on model
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        
         response = completion(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
+            api_key=api_key
         )
         response_text = response["choices"][0]["message"]["content"]
         
@@ -205,10 +211,14 @@ Clinical case:
 Provide a focused, professional assessment from your specialty viewpoint. Be concise but thorough."""
 
     try:
+        # Determine API key based on model
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        
         response = completion(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
+            api_key=api_key
         )
         assessment = response["choices"][0]["message"]["content"]
     except Exception as e:
@@ -253,10 +263,14 @@ and create ONE unified, integrated clinical summary that:
 Provide a cohesive, clinically actionable summary that synthesizes all perspectives."""
 
     try:
+        # Determine API key based on model
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        
         response = completion(
             model=LLM_MODEL,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
+            api_key=api_key
         )
         final_summary = response["choices"][0]["message"]["content"]
     except Exception as e:

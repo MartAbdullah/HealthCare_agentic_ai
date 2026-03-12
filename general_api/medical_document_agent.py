@@ -15,8 +15,12 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 from litellm import completion
 import os
-
 from tools import get_icd10_code, format_soap_template
+
+# Setup API keys
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
 
 class AgentState(TypedDict):
