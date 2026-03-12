@@ -19,8 +19,8 @@ from tools import get_icd10_code, format_soap_template
 
 # Setup API keys
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+LLM_MODEL = os.getenv("LLM_MODEL")
 
 
 class AgentState(TypedDict):
@@ -45,7 +45,7 @@ def condition_extractor(state: AgentState) -> dict:
     if "gemini" in model.lower():
         api_key = os.getenv("GEMINI_API_KEY")
     else:
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = None
     
     prompt = f"""You are a clinical NLP specialist. Extract all medical conditions mentioned in the following clinical document.
 
@@ -90,7 +90,7 @@ def medication_extractor(state: AgentState) -> dict:
     if "gemini" in model.lower():
         api_key = os.getenv("GEMINI_API_KEY")
     else:
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = None
     
     prompt = f"""You are a clinical pharmacist. Extract all medications from the following clinical document.
 
@@ -141,7 +141,7 @@ def condition_coder(state: AgentState) -> dict:
     if "gemini" in model.lower():
         api_key = os.getenv("GEMINI_API_KEY")
     else:
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = None
     
     if not state["conditions"]:
         return {"extractions": []}
@@ -199,7 +199,7 @@ def medication_coder(state: AgentState) -> dict:
     if "gemini" in model.lower():
         api_key = os.getenv("GEMINI_API_KEY")
     else:
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = None
     
     if not state["medications"]:
         return {"extractions": []}
@@ -264,7 +264,7 @@ def soap_drafter(state: AgentState) -> dict:
     if "gemini" in model.lower():
         api_key = os.getenv("GEMINI_API_KEY")
     else:
-        api_key = os.getenv("OPENAI_API_KEY")
+        api_key = None
     
     # Format conditions and medications for the prompt
     conditions_list = "\n".join([
@@ -295,7 +295,6 @@ Write a concise Assessment section (2-3 sentences) that synthesizes the findings
     response = completion(
         model=model,
         messages=[{"role": "user", "content": prompt}],
-        api_key=api_key,
         temperature=0.3
     )
     

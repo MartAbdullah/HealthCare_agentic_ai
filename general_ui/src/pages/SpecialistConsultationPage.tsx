@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SendIcon, Loader2Icon, UsersIcon, AlertCircleIcon, CheckCircleIcon } from '../icons';
+import { SendIcon, Loader2Icon, UsersIcon } from '../icons';
 import { API_ENDPOINTS } from '../config/api';
 
 interface SpecialistAnalysis {
@@ -14,7 +14,7 @@ interface AnalysisResult {
   specialists_count: number;
 }
 
-interface IntermediateAgentPageProps {
+interface SpecialistConsultationPageProps {
   specialistsCount: number;
 }
 
@@ -24,6 +24,7 @@ interface Patient {
   condition: string;
   caseId: string;
   caseText: string;
+  avatar: string;
 }
 
 const PATIENTS: Record<string, Patient> = {
@@ -33,6 +34,7 @@ const PATIENTS: Record<string, Patient> = {
     condition: 'Acute Meningitis',
     caseId: 'case1',
     caseText: 'Patient is a 45-year-old male with a 3-day history of:\n- Severe headache (9/10 intensity), photophobia, neck stiffness\n- Nausea and one episode of vomiting\n- Temperature 38.7°C, HR 94\n- CBC: WBC 14,200 (elevated), neutrophils 85%\n- CSF: cloudy, protein elevated, glucose low',
+    avatar: 'https://i.pravatar.cc/160?img=1',
   },
   patient2: {
     id: 'PAT-2026-00452',
@@ -40,6 +42,7 @@ const PATIENTS: Record<string, Patient> = {
     condition: 'Decompensated Heart Failure',
     caseId: 'case2',
     caseText: '68-year-old female with a 2-week history of progressive shortness of breath,\nbilateral leg swelling, and orthopnea. She reports a 5 kg weight gain over\nthe past month. Past medical history: hypertension, type 2 diabetes.\nMedications: metformin, amlodipine. Exam: JVP elevated, bilateral crackles,\npitting edema to knees. ECG: sinus tachycardia, LBBB.\nBNP: 1,450 pg/mL (elevated). CXR: cardiomegaly, pulmonary congestion.',
+    avatar: 'https://i.pravatar.cc/160?img=47',
   },
   patient3: {
     id: 'PAT-2026-00453',
@@ -47,6 +50,7 @@ const PATIENTS: Record<string, Patient> = {
     condition: 'Primary Hypothyroidism',
     caseId: 'case3',
     caseText: 'Patient: 58-year-old female\nChief complaint: fatigue, weight gain, cold intolerance\n\nHistory: 6-month history of progressive fatigue, 8 kg weight gain, constipation,\ncold intolerance, and dry skin. No chest pain or dyspnea.\n\nMedications: atorvastatin 40 MG Oral, lisinopril 10 MG Oral\n\nExam: HR 58, BP 138/88, BMI 31. Skin dry, hair brittle, delayed reflexes.\nThyroid: diffusely enlarged, non-tender.\n\nLabs: TSH 18.4 mIU/L (elevated), Free T4 0.5 ng/dL (low), Total cholesterol 268 mg/dL',
+    avatar: 'https://i.pravatar.cc/160?img=42',
   },
 };
 
@@ -64,7 +68,7 @@ const SPECIALIST_DATABASE: Record<string, { fullName: string; description: strin
   'Radiologist': { fullName: 'Dr. Emma Thompson', description: 'Medical Imaging & Diagnostics Expert', emoji: '🖼️', color: 'from-slate-500 to-slate-600' },
 };
 
-export default function IntermediateAgentPage({ specialistsCount }: IntermediateAgentPageProps) {
+export default function SpecialistConsultationPage({ specialistsCount }: SpecialistConsultationPageProps) {
   const [medicalCase, setMedicalCase] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -186,9 +190,8 @@ export default function IntermediateAgentPage({ specialistsCount }: Intermediate
         </>
       )}
 
-      <div className="flex h-screen gap-8">
-        {/* Right Content Area - Main Content (Full Width) */}
-        <div className="flex-1 pt-12 pr-8 overflow-y-auto">
+      <div className="px-4 py-12 sm:px-6 lg:px-8 overflow-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-16">
             <div className="inline-flex items-center space-x-3 bg-purple-500/20 border border-purple-500/40 rounded-full px-6 py-3 mb-6 backdrop-blur-sm">
@@ -215,7 +218,7 @@ export default function IntermediateAgentPage({ specialistsCount }: Intermediate
                     onClick={() => setShowPatientMenu(!showPatientMenu)}
                     className="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-6 rounded-xl transition-all flex items-center space-x-2"
                   >
-                    <span>👤 Select Patient</span>
+                    <span style={{ filter: 'brightness(0) invert(1)' }}>👤</span> Select Patient
                   </button>
                   
                   {showPatientMenu && (
@@ -226,15 +229,24 @@ export default function IntermediateAgentPage({ specialistsCount }: Intermediate
                         onClick={() => setShowPatientMenu(false)}
                       />
                       {/* Dropdown Menu */}
-                      <div className="absolute right-0 mt-2 w-64 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50">
+                      <div className="absolute right-0 mt-2 w-80 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50">
                         {Object.values(PATIENTS).map((patient) => (
                           <button
                             key={patient.id}
                             onClick={() => handleSelectPatient(patient)}
                             className="w-full text-left px-4 py-3 hover:bg-slate-600 first:rounded-t-lg last:rounded-b-lg transition-all border-b border-slate-600 last:border-b-0"
                           >
-                            <p className="text-white font-semibold">{patient.name}</p>
-                            <p className="text-gray-400 text-sm">{patient.condition}</p>
+                            <div className="flex items-center space-x-3">
+                              <img 
+                                src={patient.avatar} 
+                                alt={patient.name}
+                                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                              />
+                              <div className="flex-1">
+                                <p className="text-white font-semibold">{patient.name}</p>
+                                <p className="text-gray-400 text-sm">{patient.condition}</p>
+                              </div>
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -315,12 +327,6 @@ export default function IntermediateAgentPage({ specialistsCount }: Intermediate
                   {/* Tabs - Full Width */}
                   <div className="flex flex-wrap gap-2 mb-6 p-3 bg-slate-800/50 rounded-xl border border-slate-700/30 backdrop-blur-sm overflow-visible relative">
                     {result.specialist_assessments.map((assessment) => {
-                      const specInfo = SPECIALIST_DATABASE[assessment.specialist] || {
-                        fullName: 'Dr. Medical Specialist',
-                        description: 'Medical Specialist',
-                        emoji: '👨‍⚕️',
-                        color: 'from-blue-500 to-blue-600',
-                      };
                       return (
                         <div key={assessment.specialist} className="relative">
                           <button

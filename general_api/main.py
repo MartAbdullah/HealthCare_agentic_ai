@@ -7,14 +7,17 @@ Combines three specialized medical AI agents in a single FastAPI server:
 """
 
 import os
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 import uuid
+import re
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+import requests
+from xml.etree import ElementTree as ET
 
 # Import agent modules from local files
 from patient_intake_agent import app as patient_intake_app
@@ -126,6 +129,22 @@ class ApproveResponse(BaseModel):
     """Approval response"""
     status: str
     final_soap_note: str
+
+
+class NewsItem(BaseModel):
+    """Single news item"""
+    title: str
+    description: str
+    link: str
+    source: str
+    pubDate: Optional[str] = None
+    image: Optional[str] = None
+
+
+class NewsResponse(BaseModel):
+    """News feed response"""
+    items: List[NewsItem]
+    count: int
 
 # ============================================================================
 # HEALTH CHECK ENDPOINTS
@@ -434,6 +453,88 @@ async def approve_soap_note(request: ApproveRequest):
             detail=f"Error approving SOAP note: {str(e)}"
         )
 
+
+# ============================================================================
+# NEWS ENDPOINTS
+# ============================================================================
+
+@app.get("/health-news", response_model=NewsResponse)
+async def get_health_news():
+    """Fetch latest health news from BBC Health RSS feed."""
+    try:
+        feed_url = 'https://feeds.bbci.co.uk/news/health/rss.xml'
+        response = requests.get(feed_url, timeout=10)
+        response.raise_for_status()
+        
+        # Parse with ElementTree, handling namespaces
+        root = ET.fromstring(response.content)
+        
+        # Define namespaces
+        namespaces = {
+            'media': 'http://search.yahoo.com/mrss/',
+            'content': 'http://purl.org/rss/1.0/modules/content/',
+            'dc': 'http://purl.org/dc/elements/1.1/'
+        }
+        
+        items = []
+        
+        # Find all items in the channel
+        for item in root.findall('.//item')[:15]:
+            title_elem = item.find('title')
+            desc_elem = item.find('description')
+            link_elem = item.find('link')
+            pubdate_elem = item.find('pubDate')
+            
+            title = title_elem.text if title_elem is not None else 'No Title'
+            description = desc_elem.text if desc_elem is not None else ''
+            link = link_elem.text if link_elem is not None else ''
+            pubdate = pubdate_elem.text if pubdate_elem is not None else ''
+            
+            image = None
+            
+            # Look for media:thumbnail element with namespace
+            # Format: <media:thumbnail width="240" height="135" url="..."/>
+            thumbnail = item.find('media:thumbnail', namespaces)
+            if thumbnail is not None:
+                url_attr = thumbnail.get('url')
+                if url_attr:
+                    image = url_attr
+            
+            # Fallback: Try without namespace prefix
+            if not image:
+                for elem in item:
+                    if elem.tag.endswith('thumbnail'):
+                        url_attr = elem.get('url')
+                        if url_attr:
+                            image = url_attr
+                            break
+            
+            # Clean description from HTML
+            if description:
+                clean_desc = re.sub('<[^<]+?>', '', description)
+                clean_desc = clean_desc[:200].strip()
+                if len(description) > 200:
+                    clean_desc += '...'
+                description = clean_desc
+            
+            if title and link:
+                items.append(NewsItem(
+                    title=title[:100],
+                    description=description,
+                    link=link,
+                    source='BBC Health',
+                    pubDate=pubdate,
+                    image=image
+                ))
+        
+        return NewsResponse(items=items, count=len(items))
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching health news: {str(e)}"
+        )
+
 # ============================================================================
 # ROOT ENDPOINT
 # ============================================================================
@@ -470,6 +571,13 @@ async def root():
                     "approve": "/advanced/approve",
                     "list_files": "/advanced/files"
                 }
+            }
+        },
+        "utilities": {
+            "news": {
+                "name": "Health News Feed",
+                "description": "Latest health news from BBC Health RSS",
+                "endpoint": "/health-news"
             }
         }
     }

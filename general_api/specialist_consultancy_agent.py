@@ -13,7 +13,7 @@ load_dotenv()
 # Model configuration
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+
 
 # Specialist Registry
 SPECIALISTS = {
@@ -133,7 +133,7 @@ Return only the JSON array, no explanation."""
 
     try:
         # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
         
         response = completion(
             model=LLM_MODEL,
@@ -212,7 +212,7 @@ Provide a focused, professional assessment from your specialty viewpoint. Be con
 
     try:
         # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
         
         response = completion(
             model=LLM_MODEL,
@@ -264,7 +264,7 @@ Provide a cohesive, clinically actionable summary that synthesizes all perspecti
 
     try:
         # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else OPENAI_API_KEY
+        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
         
         response = completion(
             model=LLM_MODEL,

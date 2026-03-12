@@ -217,9 +217,6 @@ export default function PatientPage() {
 
   const currentPatient = patientProfiles[selectedPatient as keyof typeof patientProfiles];
 
-  const medicalHistory: typeof currentPatient.medicalHistory = [];
-  const appointments: typeof currentPatient.appointments = [];
-
   return (
     <div className="flex flex-col min-h-screen">
       <div className="flex-1 px-4 py-8 sm:px-6 lg:px-8 overflow-auto">

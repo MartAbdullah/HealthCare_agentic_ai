@@ -10,27 +10,13 @@ interface NewsItem {
   pubDate?: string;
 }
 
-const RSS_FEEDS = [
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const RSS_FEEDS: any[] = [
   {
     url: 'https://feeds.bbci.co.uk/news/health/rss.xml',
     name: 'BBC Health'
   }
 ];
-
-// Kullanarak birden fazla CORS proxy'i deneyelim
-const CORS_PROXIES = [
-  'https://api.allorigins.win/get?url=',
-  'https://api.codetabs.com/v1/proxy?quest='
-];
-
-let currentProxyIndex = 0;
-
-// Görsel URL'lerini işle - direkt HTTP'yi HTTPS'ye çevir
-const wrapImageUrlWithProxy = (imageUrl: string): string => {
-  if (!imageUrl) return imageUrl;
-  // HTTP'yi HTTPS'ye çevir, proxy kullanma
-  return imageUrl.replace(/^http:\/\//, 'https://');
-};
 
 export default function NewsFeeds() {
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -62,162 +48,20 @@ export default function NewsFeeds() {
       try {
         setLoading(true);
         setError(null);
-        const allNews: NewsItem[] = [];
-
-        for (const feed of RSS_FEEDS) {
-          try {
-            console.log('📰 Fetching feed:', feed.url);
-            
-            let xmlContent = '';
-            let parseSuccess = false;
-            
-            // CORS proxy'leri sırayla dene
-            for (let i = 0; i < CORS_PROXIES.length && !parseSuccess; i++) {
-              try {
-                const corsProxy = CORS_PROXIES[i];
-                const proxyUrl = corsProxy.includes('quest=') 
-                  ? `${corsProxy}${encodeURIComponent(feed.url)}`
-                  : `${corsProxy}${encodeURIComponent(feed.url)}`;
-                
-                console.log('🔗 Using proxy:', proxyUrl.substring(0, 50) + '...');
-                
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                  console.warn(`Proxy ${i} failed with status ${response.status}`);
-                  continue;
-                }
-                
-                const data = await response.json();
-                
-                // allorigins format: {contents: "..."}
-                xmlContent = data.contents || data || '';
-                
-                if (xmlContent && xmlContent.includes('<') && xmlContent.includes('item')) {
-                  parseSuccess = true;
-                  console.log('✅ Successfully fetched feed');
-                } else {
-                  console.warn('Proxy response invalid XML format');
-                  continue;
-                }
-              } catch (proxyErr) {
-                console.error(`Proxy ${i} error:`, proxyErr);
-                continue;
-              }
-            }
-            
-            if (!parseSuccess) {
-              console.error(`❌ All proxies failed for ${feed.name}`);
-              currentProxyIndex++;
-              continue;
-            }
-            
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-            
-            // XML parse error kontrolü
-            if (xmlDoc.getElementsByTagName('parsererror').length > 0) {
-              console.error('XML parsing error:', xmlDoc);
-              continue;
-            }
-            
-            console.log('✅ XML parsed successfully');
-
-            const items = xmlDoc.querySelectorAll('item');
-            console.log(`Found ${items.length} items`);
-            
-            items.forEach((item, index) => {
-              if (index < 15) {
-                const title = item.querySelector('title')?.textContent || 'No Title';
-                const description = item.querySelector('description')?.textContent || '';
-                const link = item.querySelector('link')?.textContent || '';
-                const pubDate = item.querySelector('pubDate')?.textContent || '';
-
-                // Görsel almaya çalış
-                let image: string | undefined;
-                
-                // 1. BBC'de resimler media:thumbnail'da gelir
-                const thumbnail = item.querySelector('media\\:thumbnail') || 
-                                 Array.from(item.querySelectorAll('*')).find(el => el.nodeName.includes('thumbnail'));
-                if (thumbnail) {
-                  const url = thumbnail.getAttribute('url');
-                  if (url) {
-                    image = url;
-                    console.log('✓ Found image via media:thumbnail');
-                  }
-                }
-                
-                // 2. Fallback: Description içinde HTML img tag'ı ara
-                if (!image && description) {
-                  const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i);
-                  if (imgMatch?.[1]) {
-                    image = imgMatch[1];
-                    console.log('✓ Found image in description HTML');
-                  }
-                }
-                
-                // 3. Fallback: Enclosure ara
-                if (!image) {
-                  const enclosure = item.querySelector('enclosure');
-                  const encType = enclosure?.getAttribute('type') || '';
-                  if (enclosure && encType.startsWith('image')) {
-                    const url = enclosure.getAttribute('url');
-                    if (url) {
-                      image = url;
-                      console.log('✓ Found image via enclosure');
-                    }
-                  }
-                }
-
-                // Görsel URL'sini işle
-                if (image) {
-                  image = wrapImageUrlWithProxy(image);
-                }
-
-                // HTML tag'lerini temizle
-                let cleanDescription = description;
-                if (cleanDescription.includes('<')) {
-                  cleanDescription = cleanDescription
-                    .replace(/<img[^>]*>/g, '')
-                    .replace(/<[^>]*>/g, '')
-                    .substring(0, 150)
-                    .trim() + '...';
-                } else {
-                  cleanDescription = cleanDescription.substring(0, 150).trim() + '...';
-                }
-
-                allNews.push({
-                  title: title.substring(0, 80),
-                  description: cleanDescription,
-                  image,
-                  link,
-                  source: feed.name,
-                  pubDate
-                });
-              }
-            });
-          } catch (err) {
-            console.error(`❌ Error processing ${feed.name}:`, err);
-          }
-        }
-
-        console.log('📊 All news items:', allNews);
-        const newsWithImages = allNews.filter(n => n.image);
-        const newsWithoutImages = allNews.filter(n => !n.image);
-        console.log(`📸 Items WITH images: ${newsWithImages.length}, WITHOUT images: ${newsWithoutImages.length}`);
         
-        // Tarih sırasına göre düzenle ve ilk 3'ünü al
-        allNews.sort((a, b) => {
-          if (!a.pubDate || !b.pubDate) return 0;
-          return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
-        });
-
-        const finalNews = allNews.slice(0, 15);
-        console.log('✨ Final news items:', finalNews);
-        setNewsItems(finalNews);
+        // Fetch from backend endpoint
+        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+        const response = await fetch(`${API_BASE_URL}/health-news`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch news: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setNewsItems(data.items || []);
       } catch (err) {
-        console.error('🚨 Main error:', err);
-        setError('Haberler yüklenirken hata oluştu');
+        console.error('Error fetching health news:', err);
+        setError('Failed to load health news');
       } finally {
         setLoading(false);
       }

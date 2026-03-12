@@ -298,7 +298,7 @@ export default function SpecialistPage() {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   <img
                     src={DOCTOR_PHOTOS[specialist.key]}
-                    alt={`${specialist.name} profile photo`}
+                    alt={`${specialist.name} profile`}
                     className="w-16 h-16 rounded-full object-cover border-2 border-white/40 flex-shrink-0"
                     loading="lazy"
                   />
