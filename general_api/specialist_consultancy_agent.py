@@ -7,12 +7,14 @@ from dotenv import load_dotenv
 from litellm import completion
 from langgraph.graph import StateGraph, END
 from langgraph.types import Send
+from tools import get_llm_completion
 
 load_dotenv()
 
 # Model configuration
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 
 # Specialist Registry
@@ -132,15 +134,7 @@ Example: ["cardiologist", "pulmonologist", "nephrologist"]
 Return only the JSON array, no explanation."""
 
     try:
-        # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
-        
-        response = completion(
-            model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            api_key=api_key
-        )
+        response = get_llm_completion(prompt, temperature=0.3)
         response_text = response["choices"][0]["message"]["content"]
         
         # Extract JSON array from response
@@ -211,15 +205,7 @@ Clinical case:
 Provide a focused, professional assessment from your specialty viewpoint. Be concise but thorough."""
 
     try:
-        # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
-        
-        response = completion(
-            model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-            api_key=api_key
-        )
+        response = get_llm_completion(prompt, temperature=0.7)
         assessment = response["choices"][0]["message"]["content"]
     except Exception as e:
         print(f"Error in specialist_runner ({specialist_key}): {e}")
@@ -263,15 +249,7 @@ and create ONE unified, integrated clinical summary that:
 Provide a cohesive, clinically actionable summary that synthesizes all perspectives."""
 
     try:
-        # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
-        
-        response = completion(
-            model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.5,
-            api_key=api_key
-        )
+        response = get_llm_completion(prompt, temperature=0.5)
         final_summary = response["choices"][0]["message"]["content"]
     except Exception as e:
         print(f"Error in aggregator: {e}")

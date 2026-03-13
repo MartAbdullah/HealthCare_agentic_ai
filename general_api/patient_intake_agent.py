@@ -5,12 +5,14 @@ from typing import Annotated, TypedDict, Union
 from dotenv import load_dotenv
 from litellm import completion
 from langgraph.graph import StateGraph, END
+from tools import get_llm_completion
 
 load_dotenv()
 
 # Model konfigürasyonu
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class AgentState(TypedDict):
     input_text: str
@@ -28,15 +30,7 @@ def generator_node(state: AgentState):
     if feedback:
         prompt += f"\n\nPrevious feedback to address: {feedback}"
     
-    # Determine API key based on model
-    api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
-    
-    response = completion(
-        model=LLM_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-        api_key=api_key
-    )
+    response = get_llm_completion(prompt, temperature=0.2)
     
     draft = response.choices[0].message.content
     return {
@@ -59,15 +53,7 @@ def critic_node(state: AgentState):
     )
     
     try:
-        # Determine API key based on model
-        api_key = GEMINI_API_KEY if "gemini" in LLM_MODEL.lower() else None
-        
-        response = completion(
-            model=LLM_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            api_key=api_key
-        )
+        response = get_llm_completion(prompt, temperature=0.0)
         
         response_text = response.choices[0].message.content.strip()
         # Extract JSON from response (handle cases where model adds extra text)

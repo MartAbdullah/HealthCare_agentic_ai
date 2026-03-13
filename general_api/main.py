@@ -122,7 +122,9 @@ class UploadResponse(BaseModel):
     thread_id: str
     status: str
     soap_draft: str
-    extractions: dict
+    extractions: List[dict]
+    conditions: List[str] = []
+    medications: List[dict] = []
 
 
 class ApproveResponse(BaseModel):

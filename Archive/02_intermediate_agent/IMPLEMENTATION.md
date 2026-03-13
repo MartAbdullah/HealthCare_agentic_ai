@@ -85,8 +85,9 @@ requests>=2.31.0
 ## Environment File (`.env`)
 
 ```env
-OGEMINI_API_KEY=.....
-LLM_MODEL=gemini/.....
+GEMINI_API_KEY=
+GROQ_API_KEY=..
+LLM_MODEL=groq/llama-3.3-70b-versatile
 ```
 **Windows PowerShell:**
 ```powershell

@@ -1,5 +1,40 @@
-"""Helper functions for clinical document processing pipeline."""
+import os
+from litellm import completion
 
+def get_llm_completion(prompt: str, temperature: float = 0.5):
+    """
+    Get LLM completion with Groq as primary and Gemini as fallback.
+    """
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    
+    # Try Groq first
+    try:
+        print(f"DEBUG: Attempting Groq with model: groq/llama-3.3-70b-versatile")
+        response = completion(
+            model="groq/llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=temperature,
+            api_key=GROQ_API_KEY
+        )
+        print("DEBUG: Groq success")
+        return response
+    except Exception as groq_err:
+        print(f"DEBUG: Groq error: {type(groq_err).__name__}: {groq_err}")
+        print(f"DEBUG: Falling back to Gemini...")
+        # Try Gemini as fallback
+        try:
+            response = completion(
+                model="gemini/gemini-2.0-flash",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                api_key=GEMINI_API_KEY
+            )
+            print("DEBUG: Gemini success")
+            return response
+        except Exception as gemini_err:
+            print(f"Gemini fallback also failed: {gemini_err}")
+            raise gemini_err
 
 def get_icd10_code(condition: str) -> str:
     """

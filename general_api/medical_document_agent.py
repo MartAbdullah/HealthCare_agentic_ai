@@ -15,10 +15,11 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 from litellm import completion
 import os
-from tools import get_icd10_code, format_soap_template
+from tools import get_icd10_code, format_soap_template, get_llm_completion
 
 # Setup API keys
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 LLM_MODEL = os.getenv("LLM_MODEL")
 
@@ -38,15 +39,6 @@ def condition_extractor(state: AgentState) -> dict:
     
     Uses LLM to identify and list medical conditions mentioned in the document.
     """
-    # Get API key based on model provider
-    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    
-    # Determine API key based on model
-    if "gemini" in model.lower():
-        api_key = os.getenv("GEMINI_API_KEY")
-    else:
-        api_key = None
-    
     prompt = f"""You are a clinical NLP specialist. Extract all medical conditions mentioned in the following clinical document.
 
 Return ONLY a valid JSON array of condition strings, like this:
@@ -57,14 +49,7 @@ Document:
 
 Respond with just the JSON array, no additional text."""
 
-    message = HumanMessage(content=prompt)
-    
-    response = completion(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        api_key=api_key,
-        temperature=0.2
-    )
+    response = get_llm_completion(prompt, temperature=0.2)
     
     response_text = response.choices[0].message.content
     
@@ -86,12 +71,6 @@ def medication_extractor(state: AgentState) -> dict:
     
     Uses LLM to identify medications and structure them with three key fields.
     """
-    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    if "gemini" in model.lower():
-        api_key = os.getenv("GEMINI_API_KEY")
-    else:
-        api_key = None
-    
     prompt = f"""You are a clinical pharmacist. Extract all medications from the following clinical document.
 
 For each medication, provide ONLY these three fields:
@@ -110,12 +89,7 @@ Document:
 
 Respond with just the JSON array, no additional text."""
 
-    response = completion(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        api_key=api_key,
-        temperature=0.2
-    )
+    response = get_llm_completion(prompt, temperature=0.2)
     
     response_text = response.choices[0].message.content
     
@@ -137,12 +111,6 @@ def condition_coder(state: AgentState) -> dict:
     
     Uses LLM to match conditions to ICD-10-CM terminology codes.
     """
-    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    if "gemini" in model.lower():
-        api_key = os.getenv("GEMINI_API_KEY")
-    else:
-        api_key = None
-    
     if not state["conditions"]:
         return {"extractions": []}
     
@@ -160,12 +128,7 @@ Return a valid JSON array with this exact structure:
 
 Respond with just the JSON array, no additional text."""
 
-    response = completion(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        api_key=api_key,
-        temperature=0.2
-    )
+    response = get_llm_completion(prompt, temperature=0.2)
     
     response_text = response.choices[0].message.content
     
@@ -195,12 +158,6 @@ def medication_coder(state: AgentState) -> dict:
     
     Uses LLM to match medications to RxNorm (RxCUI) codes.
     """
-    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    if "gemini" in model.lower():
-        api_key = os.getenv("GEMINI_API_KEY")
-    else:
-        api_key = None
-    
     if not state["medications"]:
         return {"extractions": []}
     
@@ -224,12 +181,7 @@ Return a valid JSON array with this exact structure:
 
 Respond with just the JSON array, no additional text."""
 
-    response = completion(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        api_key=api_key,
-        temperature=0.2
-    )
+    response = get_llm_completion(prompt, temperature=0.2)
     
     response_text = response.choices[0].message.content
     
@@ -260,12 +212,6 @@ def soap_drafter(state: AgentState) -> dict:
     Collects extractions and uses LLM to draft the assessment section,
     then formats with SOAP template.
     """
-    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    if "gemini" in model.lower():
-        api_key = os.getenv("GEMINI_API_KEY")
-    else:
-        api_key = None
-    
     # Format conditions and medications for the prompt
     conditions_list = "\n".join([
         f"- {ext['chunk']} ({ext['ICD10']})"
@@ -292,12 +238,7 @@ Original document excerpt:
 
 Write a concise Assessment section (2-3 sentences) that synthesizes the findings."""
 
-    response = completion(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3
-    )
-    
+    response = get_llm_completion(prompt, temperature=0.3)
     assessment = response.choices[0].message.content
     
     # Create complete SOAP note using template
@@ -379,12 +320,16 @@ def start_workflow(thread_id: str, raw_text: str) -> dict:
     
     soap_draft = state.values.get("soap_draft", "")
     extractions = state.values.get("extractions", [])
+    conditions = state.values.get("conditions", [])
+    medications = state.values.get("medications", [])
     
     return {
         "thread_id": thread_id,
         "status": "awaiting_approval",
         "soap_draft": soap_draft,
-        "extractions": extractions
+        "extractions": extractions,
+        "conditions": conditions,
+        "medications": medications
     }
 
 

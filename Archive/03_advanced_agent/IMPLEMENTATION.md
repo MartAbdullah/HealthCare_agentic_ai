@@ -97,8 +97,9 @@ requests>=2.31.0
 ## Environment File (`.env`)
 
 ```env
-OPENAI_API_KEY=sk-...
-LLM_MODEL=gpt-4o-mini
+GEMINI_API_KEY=
+GROQ_API_KEY=..
+LLM_MODEL=groq/llama-3.3-70b-versatile
 ```
 
 ---
