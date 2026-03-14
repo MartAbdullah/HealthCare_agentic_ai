@@ -1,252 +1,470 @@
-# Agentic Projects — Student Implementation Guide
+# Healthcare Agentic AI — v2.0
 
-A hands-on series of three healthcare AI projects, each building on the last. By completing all three, students progress from a simple two-node loop to a full stateful multi-agent pipeline with human oversight.
+A unified healthcare AI platform featuring three specialized medical agents integrated into a single FastAPI backend and React frontend. This system demonstrates advanced agentic AI concepts through practical healthcare use cases.
+
+**Version:** 2.0 (Reorganized)  
+**Status:** Production Ready  
+
+---
+
+## System Overview
+
+### Architecture
+```
+┌─────────────────────────────────────────────┐
+│         React Frontend (general_ui/)         │
+│  Patient Intake | Specialist Consultation   │
+│    Clinical Document Processing              │
+└──────────────────┬──────────────────────────┘
+                   │ HTTP/REST
+                   ▼
+┌─────────────────────────────────────────────┐
+│   Unified FastAPI Backend (general_api/)     │
+│  • Patient Intake Agent (Reflection Loop)   │
+│  • Specialist Consultation Agent (Parallel) │
+│  • Clinical Document Agent (Pipeline+HiL)  │
+└─────────────────────────────────────────────┘
+```
+
+---
+
+### Project Focus & Scope
+
+> **This project prioritizes mastering Agentic AI working principles over production infrastructure.**
+> 
+> The focus is on **agent design patterns** (reflection loops, parallel fan-out, human-in-the-loop)
+> and **LLM integration** rather than enterprise-grade features. Therefore, database connections 
+> and persistent server infrastructure are intentionally omitted. This allows you to concentrate 
+> on the core concepts: state management, conditional routing, multi-agent coordination, and 
+> human approval workflows—without the distraction of database schemas, migrations, or deployment 
+> complexity. Once you master these agentic patterns, scaling to production with databases, 
+> authentication, and microservices becomes straightforward.
 
 ---
 
 ## What You Will Learn
 
 ### Agentic AI Concepts
-- How to define and manage **state** that flows through a multi-node graph
-- How to build **reflection loops** where agents critique and improve each other's output
-- How to **route tasks dynamically** at runtime using LLM-driven supervisor logic
-- How to run multiple agents **in parallel** and merge their results
-- How to **pause and resume** a workflow for human review using stateful checkpoints
+- **Reflection Loops**: Generator and Critic nodes that iteratively improve output (Patient Intake Agent)
+- **Supervisor + Parallel Fan-Out**: LLM-driven routing and concurrent specialist analysis (Specialist Consultancy Agent)
+- **Sequential Pipelines with Human-in-the-Loop**: Multi-phase workflows with interrupt checkpoints for human review (Clinical Document Agent)
+- **State Management**: How state flows through multi-node graphs and how to use operators to accumulate results
+- **Conditional Routing**: Dynamic decision-making at runtime based on LLM output
 
-### LangGraph Skills
-- Building graphs with `StateGraph`, nodes, edges, and conditional edges
-- Using `operator.add` as a state reducer for parallel node outputs
-- Using the `Send` API to fan-out work across multiple node instances
-- Compiling a graph with `interrupt_after` and `MemorySaver` for human-in-the-loop flows
-- Resuming a paused graph with `update_state` + `invoke(None)`
+### Core Technologies
+- **LangGraph**: Building stateful multi-agent graphs with complex control flow
+- **FastAPI**: Unified backend API serving multiple agents
+- **React + TypeScript**: Modern frontend with centralized API configuration
+- **LiteLLM**: Provider-agnostic LLM access (OpenAI, Claude, local models, etc.)
+- **Pydantic**: Robust structured output validation from LLMs
 
-### Software Engineering Skills
-- Structuring a project as a **FastAPI backend + Streamlit frontend** microservice pair
-- Containerising both services with **Docker** and wiring them via **Docker Compose**
-- Calling LLMs through **LiteLLM** for provider-agnostic model access
-- Parsing and validating **structured JSON output** from LLM responses using Pydantic
-- Extracting text from **PDF, TXT, and CSV** files programmatically
-
-### Healthcare AI Domain Knowledge
-- Why **ICD-10-CM** codes matter and how they map to medical conditions
-- What **RxNorm (RxCUI)** codes are and how they standardise medication references
-- How a **SOAP note** is structured and used in clinical documentation
-- Why clinical AI needs **human review gates** — safety, accuracy, and accountability
+### Healthcare Domain Knowledge
+- **ICD-10-CM Coding**: How medical conditions are standardized and coded
+- **RxNorm (RxCUI)**: Medication standardization and drug coding
+- **SOAP Notes**: Clinical documentation structure (Subjective, Objective, Assessment, Plan)
+- **Clinical Workflow**: Why human review gates are essential for safety and accuracy
 
 ---
 
-## Project Summaries
+## The Three Agents
 
-### Project 01 — Basic Agent
+### 1. **Patient Intake Agent** (Basic)
 **Pattern:** Reflection Loop (Generator → Critic)
 
-A patient symptom description is passed to a **Generator** agent that drafts a medical summary. A **Critic** agent then reviews the draft, checking that it does not make explicit diagnoses, uses professional clinical tone, and does not hallucinate facts. If the Critic rejects the draft, it sends back specific feedback and the Generator refines it. This loop runs up to 5 times until the Critic approves.
+Entry point for patient symptoms.  
+
+**Flow:**
+1. **Generator Node**: Takes patient symptom description, drafts a medical summary
+2. **Critic Node**: Reviews the draft for:
+   - No explicit diagnoses (only differential considerations)
+   - Professional clinical tone
+   - No hallucinated facts
+3. **Loop**: If rejected, Generator refines based on Critic feedback (max 5 iterations)
+4. **Output**: Approved summary with revision history
+
+**API Endpoint:** `POST /basic/analyze`
+```json
+{
+  "text": "Patient presents with chest pain and shortness of breath..."
+}
+```
 
 ---
 
-### Project 02 — Intermediate Agent
+### 2. **Specialist Consultancy Agent** (Intermediate)
 **Pattern:** Supervisor + Parallel Fan-Out + Aggregator
 
-A medical case is sent to a **Supervisor** LLM that reads the case and selects the most relevant specialists from a pool of 20. The selected specialists all analyze the case **simultaneously** using LangGraph's `Send` API. An **Aggregator** then synthesizes all specialist assessments into a single integrated clinical summary. Users control how many specialists are consulted (1–20) via a slider in the UI.
+Medical case routed to multiple specialists simultaneously.
+
+**Flow:**
+1. **Supervisor Node**: LLM reads case, selects top_k relevant specialists from pool of 20
+2. **Parallel Specialist Nodes**: All selected specialists analyze the case simultaneously via `Send` API
+3. **Aggregator Node**: Synthesizes all assessments into:
+   - Consensus findings
+   - Areas of divergence
+   - Prioritized management plan
+
+**API Endpoint:** `POST /intermediate/analyze`
+```json
+{
+  "case": "56-year-old patient with elevated troponin...",
+  "top_k": 5
+}
+```
+
+**Specialist Pool:** Cardiologist, Neurologist, Pulmonologist, Gastroenterologist, Rheumatologist, etc.
 
 ---
 
-### Project 03 — Advanced Agent
-**Pattern:** Sequential Multi-Phase Pipeline + Human-in-the-Loop
+### 3. **Clinical Document Agent** (Advanced)
+**Pattern:** Sequential Pipeline + Human-in-the-Loop
 
-Clinical documents (PDF, TXT, CSV) are processed through a 5-node sequential pipeline: conditions and medications are extracted, then ICD-10-CM and RxNorm codes are assigned, and finally a SOAP note is drafted. The workflow **pauses** after the SOAP draft is produced, allowing a clinician to review and edit the note in the UI before approving. Once approved, the workflow resumes and the final note is signed off.
+Multi-phase document processing with human approval gate.
 
----
+**Flow:**
+1. **Condition Extractor**: Extracts conditions from clinical documents
+2. **Medication Extractor**: Extracts medications with dosage and route
+3. **Condition Coder**: Assigns ICD-10-CM codes
+4. **Medication Coder**: Assigns RxNorm codes
+5. **SOAP Drafter**: Generates draft SOAP note
+6. **Human Review Gate**: Workflow pauses; clinician reviews and edits SOAP note in UI
+7. **Finalization**: After approval, final signed SOAP note is created
 
-## Project Progression
-
-```
-01 Basic          Reflection loop        2 nodes     Text in → Text out
-      ↓
-02 Intermediate   Supervisor + parallel  3 roles     Text in → Multi-specialist summary
-      ↓
-03 Advanced       Sequential pipeline    5 nodes     Files in → Coded entities + SOAP note
-                  + human approval
-```
-
-Each project introduces new concepts:
-
-| Feature | 01 | 02 | 03 |
-|---|---|---|---|
-| Conditional edges | ✓ | ✓ | — |
-| `Send` API (parallel fan-out) | — | ✓ | — |
-| `operator.add` reducer | ✓ | ✓ | ✓ |
-| LLM supervisor routing | — | ✓ | — |
-| `interrupt_after` (human gate) | — | — | ✓ |
-| `MemorySaver` + `update_state` | — | — | ✓ |
-| File ingestion (PDF/TXT/CSV) | — | — | ✓ |
-| Multi-state UI | — | — | ✓ |
-| Terminology coding (ICD-10 / RxNorm) | — | — | ✓ |
+**API Endpoints:**
+- `POST /advanced/upload` - Upload and process documents
+- `POST /advanced/approve` - Approve SOAP note after human review
+- `GET /advanced/files` - List available documents
 
 ---
 
-## Project 01 — Detailed Guide
+## Project Repository Structure
 
-### Flowchart
 ```
-Patient Input
-     │
-     ▼
-┌─────────────┐
-│  Generator  │ ◄──────────────────┐
-│    Node     │                    │ feedback
-└──────┬──────┘                    │
-       │ draft                     │
-       ▼                           │
-┌─────────────┐   not approved     │
-│   Critic    │───────────────────►┘
-│    Node     │
-└──────┬──────┘
-       │ approved
-       ▼
-   Final Summary
+HealthCare_agentic_ai/
+├── general_api/                          # Unified FastAPI backend
+│   ├── main.py                           # FastAPI server with all three agents
+│   ├── patient_intake_agent.py           # Basic Agent
+│   ├── specialist_consultancy_agent.py   # Intermediate Agent
+│   ├── medical_document_agent.py         # Advanced Agent
+│   ├── tools.py                          # Shared utilities and tools
+│   ├── requirements.txt                  # Python dependencies
+│   ├── data/                             # Document storage
+│   └── .env                              # Environment configuration
+│
+├── general_ui/                           # React + TypeScript frontend
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── PatientIntakePage.tsx     # Basic Agent UI
+│   │   │   ├── SpecialistConsultationPage.tsx  # Intermediate Agent UI
+│   │   │   ├── ClinicalDocumentPage.tsx        # Advanced Agent UI
+│   │   │   ├── HomePage.tsx              # Landing page
+│   │   │   └── ...
+│   │   ├── components/                   # Shared UI components
+│   │   ├── config/
+│   │   │   └── api.ts                    # Centralized API configuration
+│   │   └── App.tsx                       # Main routing
+│   ├── package.json
+│   ├── tailwind.config.js
+│   └── .env.local                        # Frontend environment
+│
+├── Archive/                              # Previous single-project implementations
+│   ├── 01_basic_agent/
+│   ├── 02_intermediate_agent/
+│   └── 03_advanced_agent/
+│
+├── REORGANIZATION.md                     # Detailed v2.0 migration guide
+└── README.md                             # This file
 ```
 
 ---
 
-## Project 02 — Detailed Guide
+## Quick Start
 
-### Flowchart
-```
-Medical Case Input
-       │
-       ▼
-┌──────────────┐
-│  Supervisor  │  (LLM selects top_k specialist keys)
-└──────┬───────┘
-       │  Send API fan-out
-       ▼
-┌──────┬──────┬──────┐
-│Spec 1│Spec 2│Spec N│  (run in parallel)
-└──────┴──────┴──────┘
-       │  results merged via operator.add
-       ▼
-┌──────────────┐
-│  Aggregator  │  (synthesizes all assessments)
-└──────┬───────┘
-       │
-       ▼
-  Final Summary
+### Prerequisites
+- Python 3.10+
+- Node.js 16+
+- pip and npm
+- LLM API keys (OpenAI, Anthropic, or compatible)
+
+### Backend Setup
+
+```bash
+# Navigate to backend
+cd general_api
+
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment variables
+copy .env.example .env
+# Edit .env with your LLM API keys and model preferences
+
+# Start API server
+python main.py
+# API will be available at http://localhost:8001
 ```
 
-## Project 03 — Detailed Guide
+### Frontend Setup
 
-### Flowchart
+```bash
+# Navigate to frontend
+cd general_ui
+
+# Install dependencies
+npm install
+
+# Configure API endpoint
+echo "REACT_APP_API_URL=http://localhost:8001" > .env.local
+
+# Start development server
+npm start
+# UI will open at http://localhost:3000
 ```
-Document(s) — PDF / TXT / CSV
-       │
-       ▼
-condition_extractor   →  ["hypertension", "stroke", ...]
-       │
-       ▼
-medication_extractor  →  [{drug, dosage, route}, ...]
-       │
-       ▼
-condition_coder       →  [{chunk, entity_type, ICD10}, ...]
-       │
-       ▼
-medication_coder      →  [{chunk, entity_type, RxNorm}, ...]
-       │
-       ▼
-soap_drafter          →  SOAP note draft
-       │
-  ─────────────────────────────────────
-  HUMAN REVIEW GATE (interrupt_after)
-  Clinician edits SOAP note in UI
-  ─────────────────────────────────────
-       │
-       ▼
-      END  →  Final signed SOAP note
-```
+
+### Verify Setup
+
+- **API Health:** `curl http://localhost:8001/health`
+- **API Docs:** Open http://localhost:8001/docs in browser
+- **Frontend:** Open http://localhost:3000 in browser
+
 ---
 
-## Student Evaluation Rubric
+## API Reference Summary
 
-### Project 01 — Basic Agent (100 points)
+### Health Checks
+```
+GET /health                    # Global health
+GET /basic/health             # Patient Intake Agent health
+GET /intermediate/health      # Specialist Consultancy health
+GET /advanced/health          # Clinical Document Agent health
+```
 
-| Category | Criteria | Points |
+### Patient Intake Agent (Basic)
+```
+POST /basic/analyze
+Body: { "text": "patient symptoms..." }
+Response: { "final_summary": "...", "history": [...] }
+```
+
+### Specialist Consultancy Agent (Intermediate)
+```
+POST /intermediate/analyze
+Body: { "case": "medical case...", "top_k": 5 }
+Response: {
+  "case_summary": "...",
+  "specialist_assessments": [...],
+  "unified_summary": "...",
+  "specialists_count": 5
+}
+```
+
+### Clinical Document Agent (Advanced)
+```
+GET /advanced/files                                # List documents
+POST /advanced/upload                              # Upload and process
+POST /advanced/process-storage                     # Process from storage
+POST /advanced/approve                             # Approve SOAP note
+Body (approve): { "thread_id": "...", "updated_soap": "..." }
+```
+
+For complete details, visit `http://localhost:8001/docs` (Swagger UI).
+
+---
+
+## Key Features
+
+### 1. Unified API Gateway
+- Single FastAPI server serves all three agents
+- Consistent error handling and response formats
+- Built-in async/await for concurrent requests
+- Swagger documentation auto-generated
+
+### 2. Centralized Frontend Configuration
+- All API endpoints defined in one place (`src/config/api.ts`)
+- No hardcoded URLs scattered across components
+- Easy to switch between development/production
+
+### 3. Agent Isolation with Shared Infrastructure
+- Each agent maintains independent logic
+- Common tools and utilities in `tools.py`
+- Shared LLM configuration via environment variables
+- Clean separation of concerns
+
+### 4. Human-in-the-Loop for Advanced Agent
+- Workflow pauses at checkpoint for human review
+- Clinician can edit intermediate results
+- Edited content preserved in final output
+- Audit trail of approvals and changes
+
+---
+
+## Development Workflow
+
+### Running Complete System
+
+```bash
+# Terminal 1 - Backend
+cd general_api
+source venv/bin/activate  # or: venv\Scripts\activate on Windows
+python main.py
+
+# Terminal 2 - Frontend
+cd general_ui
+npm start
+```
+
+### Making Changes
+
+**Backend:**
+```bash
+# Edit agent code in general_api/
+# Restart API: Ctrl+C and python main.py again
+# Check logs in terminal
+# API docs auto-update at /docs
+```
+
+**Frontend:**
+```bash
+# Edit React components
+# Hot-reload automatically applies changes
+# Check console in browser DevTools (F12)
+```
+
+### Debugging
+
+- **Backend Logs:** Check terminal running `python main.py`
+- **API Docs:** Visit `http://localhost:8001/docs`
+- **Browser Console:** Open DevTools (F12) → Console tab
+- **Network Monitoring:** DevTools → Network tab to see API calls
+
+---
+
+## Environment Variables
+
+### Backend (.env in general_api/)
+```bash
+# LLM Configuration
+LLM_MODEL=gpt-4  # or claude-3-sonnet, etc.
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Server Configuration
+API_HOST=0.0.0.0
+API_PORT=8001
+DEBUG=false
+
+# Data Storage
+DATA_DIR=/app/data
+```
+
+### Frontend (.env.local in general_ui/)
+```bash
+REACT_APP_API_URL=http://localhost:8001
+```
+
+---
+
+## Common Issues & Troubleshooting
+
+| Issue | Cause | Solution |
 |---|---|---|
-| **State Design** | `AgentState` TypedDict has all 5 fields; `operator.add` used on `messages` | 10 |
-| **Generator Node** | Correctly returns `draft` and appends to `messages`; uses `feedback` when present | 15 |
-| **Critic Node** | Returns structured `is_approved` + `feedback`; uses `temperature=0.0` and `response_format=json_object` | 15 |
-| **Conditional Edge** | `should_continue` correctly returns `END` or `"generator"` | 10 |
-| **Graph Construction** | Entry point, edges, conditional edge, and `recursion_limit=5` all correctly set | 10 |
-| **API** | `/health` and `/analyze` endpoints functional; returns `final_summary` and `history` | 15 |
-| **UI** | Spinner, result display, and thinking history expander all working | 10 |
-| **Docker** | Both services start cleanly; ports accessible; volumes mounted | 10 |
-| **Safety** | Generator never states an explicit diagnosis in the approved output | 5 |
-| **Total** | | **100** |
-
-**Critique points to watch:**
-- Does the Critic actually reject drafts that contain explicit diagnoses, or always approve?
-- Does the Generator meaningfully use the Critic's feedback to improve the draft?
-- Is the `recursion_limit` correctly set to prevent infinite loops?
+| `Connection refused on port 8001` | Backend not running | Start backend: `cd general_api && python main.py` |
+| `CORS error in browser` | Backend CORS not configured | Ensure `fastapi.middleware.cors.CORSMiddleware` is added in main.py |
+| `ModuleNotFoundError` | Missing Python dependencies | `cd general_api && pip install -r requirements.txt` |
+| `API returns 401/403` | LLM API key invalid or expired | Check `.env` file, verify API key with provider |
+| `Frontend shows loading spinner forever` | API unreachable or slow | Check browser Network tab, verify `REACT_APP_API_URL` |
+| `SOAP note doesn't pause for approval` | Missing `interrupt_after` in graph | Verify graph compilation includes `interrupt_after=["saga_drafter"]` |
 
 ---
 
-### Project 02 — Intermediate Agent (100 points)
+## Architecture Decisions
 
-| Category | Criteria | Points |
-|---|---|---|
-| **Specialist Registry** | All 20 specialists defined with accurate names and descriptions | 15 |
-| **Agent State** | `operator.add` on `assessments`; `top_k` field present | 10 |
-| **Supervisor Node** | LLM correctly selects `top_k` keys; JSON parsed robustly; fallback padding works | 20 |
-| **Send API Fan-Out** | `route_to_specialists` returns correct list of `Send` objects | 15 |
-| **Specialist Runner** | Each specialist provides domain-specific analysis in its role | 10 |
-| **Aggregator Node** | Synthesizes consensus, divergence, and prioritized management plan | 10 |
-| **API** | `/analyze` accepts `top_k` field; correct response structure | 10 |
-| **UI** | Sidebar slider works; each specialist assessment shown in a separate tab | 5 |
-| **Docker** | Both services start cleanly | 5 |
-| **Total** | | **100** |
+### Why Unified API?
+- **Simplicity:** Single endpoint for all agent functionality
+- **Scalability:** Easier to add more agents or features
+- **Maintenance:** Centralized configuration and logging
+- **Consistency:** Same error handling and response format
 
-**Critique points to watch:**
-- Do all parallel specialist nodes actually run? Verify with 3+ specialists selected.
-- Does the supervisor select the *right* specialists for the given case, or pick random ones?
-- Does the aggregator reflect actual consensus/disagreement, or just list assessments?
-- Does `top_k=1` work as well as `top_k=20`?
+### Why React + TypeScript?
+- **Type Safety:** Catch errors at compile time
+- **Developer Experience:** IntelliSense and refactoring support
+- **Component Reusability:** Shared Navbar, Sidebar, Footer components
+- **Modern Tooling:** Hot-reload, testing frameworks, bundle optimization
 
----
-
-### Project 03 — Advanced Agent (100 points)
-
-| Category | Criteria | Points |
-|---|---|---|
-| **Pipeline Order** | All 5 nodes run sequentially in the correct order | 10 |
-| **Condition Extractor** | Accurately extracts conditions as a string list from clinical text | 10 |
-| **Medication Extractor** | Correctly extracts only `drug + dosage + route` — no frequency or other fields | 10 |
-| **Condition Coder** | ICD-10-CM codes assigned and formatted correctly; fallback handled | 10 |
-| **Medication Coder** | RxNorm codes assigned; `chunk` string built from 3 fields | 10 |
-| **SOAP Drafter** | SOAP note correctly formatted with all four sections | 10 |
-| **Human-in-the-Loop** | Workflow genuinely pauses at interrupt; edits are preserved after resume | 15 |
-| **API** | All 5 endpoints functional; storage mode works with `data/` volume | 15 |
-| **UI** | All 3 states (idle, awaiting_approval, completed) render and transition correctly | 5 |
-| **Docker** | `./data:/app/data` volume mounted; both services start cleanly | 5 |
-| **Total** | | **100** |
-
-**Critique points to watch:**
-- Does the workflow actually pause after the SOAP draft, or does it skip the interrupt?
-- Are human edits to the SOAP note preserved in the final output, or overwritten?
-- Does the medication extractor avoid including frequency/duration information?
-- Do both `/upload` and `/process-storage` endpoints produce the same output format?
-- Does selecting multiple files produce a combined analysis, not separate ones?
+### Why LangGraph?
+- **State Management:** Explicit state handling for complex workflows
+- **Interrupts:** Built-in human-in-the-loop support
+- **Composition:** Easy to combine agents into larger systems
+- **Testing:** Deterministic playback and inspection
 
 ---
 
-## Common Mistakes to Avoid
+## Migration from Single-Project Structure
 
-| Mistake | Project | How to avoid |
-|---|---|---|
-| Using `interrupt_before=[END]` instead of `interrupt_after=["node_name"]` | 03 | Always name the actual node, never interrupt on `END` |
-| Missing `operator.add` reducer on accumulating state fields | 02, 03 | Use `Annotated[List[dict], operator.add]` for any field that multiple nodes write to |
-| `DATA_DIR` set to a relative path that doesn't exist inside the container | 03 | Use `/app/data` (absolute path matching the Docker volume mount target) |
-| LLM sometimes returns fewer keys than `top_k` | 02 | Always implement fallback padding after parsing the supervisor response |
-| Critic always approves on first iteration | 01 | Test with a draft that clearly states an explicit diagnosis — Critic must reject it |
-| Not restarting the API container after code changes | 02, 03 | Run `docker compose restart api` — the API has no hot-reload |
+**Note:** Original single-project implementations are preserved in the `Archive/` folder for reference:
+- `Archive/01_basic_agent/` - Original basic agent project
+- `Archive/02_intermediate_agent/` - Original intermediate agent project
+- `Archive/03_advanced_agent/` - Original advanced agent project
+
+See [REORGANIZATION.md](REORGANIZATION.md) for detailed migration guide.
 
 ---
+
+## Learning Outcomes
+
+After working through this system, you will understand:
+
+1. **How to design stateful multi-agent workflows** using LangGraph
+2. **How to build a production-grade API** with FastAPI
+3. **How to create a modern frontend** with React and TypeScript
+4. **How to safely integrate LLMs** into healthcare workflows
+5. **How to implement human-in-the-loop** approval processes
+6. **How to handle parallel execution** with `Send` API
+7. **How to structure code** for maintainability and testing
+
+---
+
+## Next Steps
+
+### For Learning
+1. Read through each agent implementation in `general_api/`
+2. Trace the data flow from API endpoint to LLM to frontend
+3. Modify prompts in agents and observe output changes
+4. Add new specialists to the Specialist Consultancy Agent
+5. Implement new coding systems (beyond ICD-10 and RxNorm)
+
+### For Production
+1. Add database for persistent storage
+2. Implement user authentication and authorization
+3. Set up monitoring, logging, and alerting
+4. Add rate limiting and request validation
+5. Containerize with Docker and deploy to cloud
+6. Set up CI/CD pipeline
+
+---
+
+## Support & Resources
+
+- **API Documentation:** `http://localhost:8001/docs` (Swagger)
+- **ReDoc:** `http://localhost:8001/redoc` (Alternative docs)
+- **Frontend Code:** Well-commented source in `general_ui/src/`
+- **Backend Code:** Docstrings in `general_api/`
+- **Migration Guide:** [REORGANIZATION.md](REORGANIZATION.md)
+
+---
+
+## License
+
+See [LICENSE](LICENSE) file for details.
+
+---
+
+**Last Updated:** March 2026  
+**Maintainer:** Healthcare AI Team  
+**Status:** Active Development
 
