@@ -81,8 +81,9 @@ export default function SpecialistConsultationPage({ specialistsCount }: Special
 
   // Check localStorage for "Don't show again" preference
   useEffect(() => {
-    const dontShow = localStorage.getItem('intermediate-dontShowHowItWorks') === 'true';
-    setShowHowItWorks(!dontShow);
+    // Reset the tutorial snackbar on page load
+    localStorage.removeItem('intermediate-dontShowHowItWorks');
+    setShowHowItWorks(true);
   }, []);
 
   // Auto-hide snackbar after 5 seconds

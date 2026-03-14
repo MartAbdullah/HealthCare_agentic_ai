@@ -234,6 +234,19 @@ npm start
 
 ---
 
+### Demo Login Credentials
+
+For testing the frontend, the following demo credentials are available:
+
+#### Login Portal
+- **Username:** `patient@example.com`
+- **Password:** `patient123`
+
+`
+
+> **Note:** These is demo credential for development and testing only. 
+---
+
 ## API Reference Summary
 
 ### Health Checks
@@ -402,16 +415,6 @@ REACT_APP_API_URL=http://localhost:8001
 - **Composition:** Easy to combine agents into larger systems
 - **Testing:** Deterministic playback and inspection
 
----
-
-## Migration from Single-Project Structure
-
-**Note:** Original single-project implementations are preserved in the `Archive/` folder for reference:
-- `Archive/01_basic_agent/` - Original basic agent project
-- `Archive/02_intermediate_agent/` - Original intermediate agent project
-- `Archive/03_advanced_agent/` - Original advanced agent project
-
-See [REORGANIZATION.md](REORGANIZATION.md) for detailed migration guide.
 
 ---
 
@@ -448,23 +451,412 @@ After working through this system, you will understand:
 
 ---
 
-## Support & Resources
+## Features & Screenshots
 
-- **API Documentation:** `http://localhost:8001/docs` (Swagger)
-- **ReDoc:** `http://localhost:8001/redoc` (Alternative docs)
-- **Frontend Code:** Well-commented source in `general_ui/src/`
-- **Backend Code:** Docstrings in `general_api/`
-- **Migration Guide:** [REORGANIZATION.md](REORGANIZATION.md)
+### 1. **Login Page**
+The entry point for the application with role-based authentication.
+
+**Features:**
+- Email and password authentication
+- Remember me functionality with secure localStorage
+- Password visibility toggle
+- Demo credentials for testing
+- Responsive design for mobile and desktop
+
+![Login Page](docs/screenshots/login-page.png)
+
+**How to Use:**
+1. Enter email and password from demo credentials section (above)
+2. Click "Sign In"
+3. You'll be redirected to Home page
+4. Remember me checkbox stores credentials for future logins
 
 ---
 
-## License
+### 2. **Home Page**
+Dashboard showcasing all three AI agents and quick navigation to their features.
 
-See [LICENSE](LICENSE) file for details.
+**Features:**
+- Quick access cards for three agents (Basic, Intermediate, Advanced)
+- Agent descriptions and capabilities overview
+- Health News feed section with latest medical news
+- Role-based sidebar navigation
+- System status indicator at bottom left
+- User profile in top right corner
+
+![Home Page](docs/screenshots/home-page.png)
+
+**What You Can Do:**
+- Browse all available medical AI agents
+- View detailed agent descriptions
+- Navigate directly to Patient Intake, Specialist Consultation, or Clinical Document processing
+- Check latest health news and medical updates
 
 ---
 
-**Last Updated:** March 2026  
-**Maintainer:** Healthcare AI Team  
-**Status:** Active Development
+### 3. **Patient Intake Agent** (Basic Level)
+Analyze patient symptoms and generate professional medical summaries using AI-powered reflection loops.
+
+**Features:**
+- Text input area for patient symptoms and medical history
+- Real-time AI analysis with Generator-Critic loop
+- Iterative improvement of medical summaries (max 5 iterations)
+- "How It Works" tutorial snackbar on first visit
+- Review of full revision history
+- Professional clinical tone validation
+- Safety checks preventing explicit diagnosis statements
+
+![Patient Intake Page](docs/screenshots/patient-intake.png)
+
+**Workflow:**
+1. **Input:** Enter patient symptoms, vital signs, and medical history
+2. **Generate:** AI creates initial summary
+3. **Critique:** AI Critic reviews for accuracy, safety, and professionalism
+4. **Loop:** If rejected, Generator refines based on feedback
+5. **Approve:** Once approved, summary shown with full history
+
+**Example Input:**
+```
+Patient is a 45-year-old male with a 3-day history of:
+- Severe headache (9/10 intensity), photophobia, neck stiffness
+- Nausea and one episode of vomiting
+- Temperature 38.7°C, HR 94
+```
+
+**AI Output:**
+Professional summary focusing on differential diagnoses without explicit diagnosis.
+
+---
+
+### 4. **Specialist Consultation Agent** (Intermediate Level)
+Get insights from multiple AI specialists analyzing complex medical cases simultaneously.
+
+**Features:**
+- Complex case input for multi-specialist analysis
+- **Adjustable specialist count** (1-20) via sidebar slider
+- Parallel AI specialist processing for fast results
+- **Specialist Assessment Tabs** showing individual specialist opinions
+- Unified clinical summary synthesizing all assessments
+- Key findings, differential diagnoses, and management plans from each specialist
+
+![Specialist Consultation Page](docs/screenshots/specialist-consultation.png)
+
+**Available Specialists (20+):**
+Cardiologist, Neurologist, Pulmonologist, Gastroenterologist, Rheumatologist, Endocrinologist, Nephrology, Infectious Disease, Hematology, Oncology, and more...
+
+**Workflow:**
+1. **Input:** Enter complex medical case
+2. **Supervisor:** AI selects relevant specialists based on case
+3. **Parallel Analysis:** All selected specialists analyze simultaneously
+4. **Synthesis:** AI synthesizes consensus, divergence, and disagreements
+5. **Output:** Unified recommendations and management plan
+
+**Example Case:**
+"68-year-old female with progressive shortness of breath, bilateral leg swelling..."
+- **Cardiologist:** Reviews heart failure indicators
+- **Nephrologist:** Assesses kidney involvement and fluid overload
+- **Pulmonologist:** Evaluates lung congestion and respiratory function
+- **Unified Plan:** Combined differential diagnoses and treatment approach
+
+---
+
+### 5. **Clinical Document Processing Agent** (Advanced Level)
+Process clinical documents with intelligent extraction, medical coding, and human-in-the-loop approval.
+
+**Features:**
+- **Multi-format Support:** Upload PDF, TXT, or CSV documents
+- **Intelligent Extraction:** Automatically extracts conditions and medications
+- **Medical Coding:** 
+  - ICD-10-CM codes for conditions
+  - RxNorm codes for medications
+- **SOAP Generation:** Automatic structured clinical note creation
+- **Visual Pipeline:** Real-time progress visualization of 5 processing stages
+- **Human Review Gate:** Built-in approval workflow for clinician verification
+- **Editable Output:** Modify extracted information before finalization
+
+![Clinical Document Pipeline](docs/screenshots/clinical-document-pipeline.png)
+
+**Processing Pipeline (5 Stages):**
+
+1. **📄 Document Upload** - Accept and validate documents
+2. **🏥 Condition Extractor** - Identify medical conditions (e.g., "hypothyroidism")
+3. **💊 Medication Extractor** - Extract drugs with dosage and route
+4. **#️⃣ Condition Coder** - Assign ICD-10-CM codes (e.g., E03.9)
+5. **#️⃣ Medication Coder** - Assign RxNorm codes (e.g., RxCUI: 196448)
+6. **✏️ SOAP Drafter** - Generate structured clinical note
+7. **👁️ Human Review** - Clinician reviews and approves
+
+![Clinical Document Processing Results](docs/screenshots/clinical-document-processing.png)
+
+**Output Information:**
+
+**Medical Conditions (ICD-10):**
+| Condition | ICD-10 Code | Status |
+|-----------|------------|--------|
+| Hypothyroidism | E03.9 | ✓ Done |
+| Hyperlipidemia | E78.5 | ✓ Done |
+| Obesity | E66.9 | ✓ Done |
+
+**Medications (RxNorm):**
+| Medication | Dosage | Route | RxNorm Code |
+|-----------|--------|-------|------------|
+| Atorvastatin | 40 MG | Oral | 196448 |
+| Lisinopril | 10 MG | Oral | 197497 |
+| Levothyroxine | 50 mcg | Oral | 185499 |
+
+**SOAP Note Structure:**
+```
+## SOAP Note
+
+### S (Subjective)
+Patient-reported symptoms and concerns...
+
+### O (Objective)  
+Clinical findings, vital signs, and laboratory results...
+
+### A (Assessment)
+Clinical impression with multiple comorbidities...
+
+### P (Plan)
+Treatment recommendations and follow-up schedule...
+```
+
+![SOAP Note Draft](docs/screenshots/clinical-document-soap.png)
+
+**How to Use:**
+1. Click "Upload Files" button
+2. Select documents (PDF, TXT, or CSV)
+3. System processes through 5 stages
+4. Review extracted conditions and medications
+5. Review SOAP note draft
+6. Edit if needed
+7. Click "Approve SOAP Note"
+8. Final note is ready for medical records
+
+---
+
+### 6. **Specialist Portal**
+Browse and connect with AI specialist agents available in the system.
+
+**Features:**
+- Interactive specialist directory
+- Specialist cards with:
+  - Profile photo
+  - Name and specialty
+  - Years of experience
+  - Medical institution location
+  - Email and phone contact
+  - Current availability status
+- Search functionality to find specialists
+- Filter by specialty
+- Real-time availability indicators:
+  - 🟢 **Available** - Ready for consultation
+  - 🟡 **In Consultation** - Currently busy
+  - Status shows time and specialization
+
+![Specialist Portal](docs/screenshots/specialist-portal.png)
+
+**Use Case:**
+- Find specific specialist for second opinion
+- Check availability before scheduling
+- View expertise and experience
+- Contact specialist directly
+
+---
+
+### 7. **Patient Portal**
+Manage personal health records and medical history.
+
+**Features:**
+- **Patient Dashboard** with overview
+- **Multiple Patient Records:**
+  - Quick access cards for different patients
+  - Risk level indicators (Critical 🔴, High 🟠, Moderate 🟢)
+  - Age, condition, and status info
+- **Detailed Patient Information:**
+  - Full patient demographics
+  - Age, blood type, vital info
+  - Last checkup and next appointment dates
+- **Medical Records Tabs:**
+  - Patient History - Full history record
+  - Medical Info - Current medications and allergies
+  - Medical History - Past diagnoses and treatments
+  - Appointments - Scheduled follow-ups
+- **Health Conditions Tracking:**
+  - Allergies and sensitivities
+  - Current conditions
+  - Medications and dosages
+
+![Patient Portal](docs/screenshots/patient-portal.png)
+
+**Workflow:**
+1. View all patients in system
+2. Select patient to view details
+3. Review medical history and conditions
+4. Check appointments and follow-ups
+5. View allergies and important health notes
+
+---
+
+### 8. **Profile Page**
+Manage your personal account information and user profile details.
+
+**Features:**
+- User profile overview with avatar
+- **Personal Information:**
+  - First Name and Last Name
+  - Email Address
+  - Phone Number
+  - Title/Role (Medical Professional, etc.)
+- **Address Information:**
+  - Country
+  - City
+  - Street Address
+  - Postal Code
+- Edit button for updating profile information
+- Role-based access with admin edit functionality
+
+![Profile Page](docs/screenshots/profile-page.png)
+
+**How to Use:**
+1. Click on user avatar in top right corner
+2. Select "Profile" from menu
+3. View your personal and address information
+4. Click "Edit" button to modify information
+5. Update details and save changes
+6. Changes are immediately reflected in your profile
+
+**Information Displayed:**
+- Current logged-in user details
+- Contact information (Email, Phone)
+- Professional role/title
+- Location information
+- User avatar/profile picture
+
+---
+
+## System Status Indicators
+
+The application displays real-time status information:
+
+**Frontend Status:**
+- ✅ Active at http://localhost:3000
+- Real-time user authentication
+- Responsive UI across devices
+
+**Backend API Status:**
+- ✅ Active at http://localhost:8001
+- All three agents operational
+- Health endpoints monitoring all services
+
+**Displayed in UI:**
+- 🟢 Green indicator: "All systems online"
+- Shows "AI system online" badge
+- Real-time availability updates
+
+---
+
+## Workflow Examples
+
+### Example 1: Patient Presenting with Chest Pain
+**Using: Patient Intake Agent (Basic)**
+
+```
+INPUT:
+Patient is a 45-year-old male with 3-day history:
+- Severe chest pain (7/10)
+- Shortness of breath on exertion
+- Mild diaphoresis
+- BP: 145/90, HR: 98
+
+PROCESS:
+Generator → Creates draft summary
+    ↓ (Sent for criticism)
+Critic → Reviews for accuracy and safety
+    ↓ (If rejected, feedback sent back)
+Generator → Refines based on feedback
+    ↓ (Repeats max 5 times until approved)
+
+OUTPUT:
+"45-year-old patient presents with acute chest pain characterized by...
+Vital signs show mild hypertension and tachycardia. Differential 
+considerations include acute coronary syndrome, pulmonary embolism,
+aortic dissection, and musculoskeletal causes. Immediate EKG and 
+troponin levels recommended..."
+
+Revision History: 2 iterations before approval
+```
+
+### Example 2: Complex Case Requiring Multiple Specialists
+**Using: Specialist Consultancy Agent (Intermediate)**
+
+```
+INPUT:
+68-year-old female with:
+- Progressive SOB for 2 weeks
+- Bilateral leg swelling
+- Elevated troponin (6.5)
+- Hypertension, diabetes, On metformin, amlodipine
+- Exam: JVP elevated, bilateral crackles, pitting edema to knees
+- ECG: Sinus tachycardia, LBBB
+
+SPECIALISTS SELECTED (top 5):
+1. Cardiologist - Heart failure specialist
+2. Nephrologist - Kidney/fluid specialist
+3. Pulmonologist - Lung congestion expert
+4. Endocrinologist - Diabetes complications
+5. Internist - Overall coordination
+
+PARALLEL ANALYSIS:
+- Cardiologist: "Consistent with acute decompensated heart failure"
+- Nephrologist: "Acute kidney injury complicating cardiac failure"
+- Pulmonologist: "Bilateral pulmonary edema secondary to heart failure"
+- Endocrinologist: "Diabetes contributing to vascular complications"
+
+UNIFIED OUTPUT:
+"Primary diagnosis: Acute decompensated heart failure with secondary
+AKI and pulmonary edema. Underlying causes: long-standing hypertension,
+diabetes, and possible myocardial infarction. Recommended: ICU admission,
+diuretics, ACE inhibitors, cardiology consult, nephrology follow-up..."
+```
+
+### Example 3: Clinical Document Processing with Human Review
+**Using: Clinical Document Agent (Advanced)**
+
+```
+INPUT DOCUMENT:
+Clinical note PDF with patient information, symptoms, exam findings,
+lab results
+
+AUTOMATED PIPELINE:
+1. Document Upload ✓
+2. Condition Extraction ✓
+   Found: hypothyroidism, hyperlipidemia, hypertension, anemia
+3. Medication Extraction ✓
+   Found: Levothyroxine 50mcg daily, Atorvastatin 40mg daily, Lisinopril 10mg daily
+4. Condition Coding ✓
+   E03.9, E78.5, I10, D50.9
+5. Medication Coding ✓
+   RxCUI: 185499, 196448, 197497
+6. SOAP Drafting ✓
+   Complete structured note generated
+7. Human Review ⏳ AWAITING APPROVAL
+
+CLINICIAN REVIEW GATE:
+- Reviews SOAP draft
+- Edits "Assessment" section to add clinical impression
+- Confirms ICD-10 codes are accurate
+- Changes one medication dosage
+- Clicks "Approve SOAP Note"
+
+FINALIZATION:
+✓ SOAP note saved to medical records
+✓ Ready for filing and insurance claims
+```
+
+---
+
+**Last Updated:** March 2026
+
+
 
