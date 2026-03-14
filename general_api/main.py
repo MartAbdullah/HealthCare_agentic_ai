@@ -148,6 +148,19 @@ class NewsResponse(BaseModel):
     items: List[NewsItem]
     count: int
 
+
+class LoginRequest(BaseModel):
+    """Login request model"""
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    """Login response model"""
+    success: bool
+    message: str
+    token: Optional[str] = None
+
 # ============================================================================
 # HEALTH CHECK ENDPOINTS
 # ============================================================================
@@ -156,6 +169,40 @@ class NewsResponse(BaseModel):
 async def global_health():
     """Global health check endpoint"""
     return HealthResponse(status="ok")
+
+
+# ============================================================================
+# AUTHENTICATION ENDPOINTS
+# ============================================================================
+
+@app.post("/login", response_model=LoginResponse)
+async def login(request: LoginRequest):
+    """
+    Authenticate user with email and password.
+    
+    For demo purposes, validates against REACT_APP_VALID_EMAIL and REACT_APP_VALID_PASSWORD
+    environment variables.
+    
+    Args:
+        request: Contains email and password
+        
+    Returns:
+        LoginResponse with success status and token if authenticated
+    """
+    valid_email = os.getenv("REACT_APP_VALID_EMAIL", "patient@healthcare.com")
+    valid_password = os.getenv("REACT_APP_VALID_PASSWORD", "password123")
+    
+    if request.email == valid_email and request.password == valid_password:
+        return LoginResponse(
+            success=True,
+            message="Login successful",
+            token="demo-token-12345"
+        )
+    else:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
 
 
 # ============================================================================

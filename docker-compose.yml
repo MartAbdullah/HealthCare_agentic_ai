@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: ./general_api
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+    volumes:
+      - ./general_api:/app
+
+  ui:
+    build:
+      context: ./general_ui
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=http://api:8001
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://api:8001
+    depends_on:
+      - api
