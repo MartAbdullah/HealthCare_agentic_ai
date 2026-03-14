@@ -11,11 +11,6 @@ from tools import get_llm_completion
 
 load_dotenv()
 
-# Model configuration
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
 
 # Specialist Registry
 SPECIALISTS = {

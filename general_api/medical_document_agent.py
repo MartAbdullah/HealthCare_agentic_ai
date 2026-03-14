@@ -17,12 +17,6 @@ from litellm import completion
 import os
 from tools import get_icd10_code, format_soap_template, get_llm_completion
 
-# Setup API keys
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-LLM_MODEL = os.getenv("LLM_MODEL")
-
 
 class AgentState(TypedDict):
     """State schema for the clinical document processing pipeline."""

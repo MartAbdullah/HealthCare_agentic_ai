@@ -3,16 +3,11 @@ import json
 import operator
 from typing import Annotated, TypedDict, Union
 from dotenv import load_dotenv
-from litellm import completion
+# from litellm import completion
 from langgraph.graph import StateGraph, END
 from tools import get_llm_completion
 
 load_dotenv()
-
-# Model konfigürasyonu
-LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 class AgentState(TypedDict):
     input_text: str
@@ -22,7 +17,7 @@ class AgentState(TypedDict):
     is_approved: bool
 
 def generator_node(state: AgentState):
-    """Tibbi özet taslağı oluşturur veya geri bildirime göre düzenler."""
+    """Creates a medical summary draft or modifies it based on feedback."""
     input_text = state["input_text"]
     feedback = state.get("feedback", "")
     
@@ -39,7 +34,7 @@ def generator_node(state: AgentState):
     }
 
 def critic_node(state: AgentState):
-    """Taslağı güvenlik ve doğruluk açısından inceler."""
+    """Reviews the draft for security and accuracy."""
     draft = state["draft"]
     
     prompt = (
@@ -79,12 +74,12 @@ def critic_node(state: AgentState):
     }
 
 def should_continue(state: AgentState):
-    """Döngünün devam edip etmeyeceğine karar verir."""
+    """Decides whether the loop should continue or not."""
     if state["is_approved"]:
         return END
     return "generator"
 
-# Graph Oluşturma
+# Create Graph
 workflow = StateGraph(AgentState)
 
 workflow.add_node("generator", generator_node)
