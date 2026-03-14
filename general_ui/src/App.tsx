@@ -57,10 +57,10 @@ function App() {
 
   // Check if user is already logged in from localStorage
   useEffect(() => {
-    const authenticated = localStorage.getItem('isAuthenticated') === 'true';
-    const email = localStorage.getItem('userEmail') || '';
-    setIsAuthenticated(authenticated);
-    setUserEmail(email);
+    // Always start with login page - user must login each time
+    // Only auto-login if explicitly needed for production
+    setIsAuthenticated(false);
+    setUserEmail('');
   }, []);
 
   const handleLogin = (email: string) => {

@@ -266,9 +266,9 @@ export default function SpecialistPage() {
             <span className="text-purple-300 font-semibold">Specialist Portal</span>
           </div>
 
-          <h1 className="text-4xl font-bold text-white mb-4">Specialist Dashboard</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">AI Specialist Dashboard</h1>
           <p className="text-gray-400 text-lg mb-8">
-            Access our network of {specialists.length} expert medical specialists
+            Experience intelligent medical analysis with our AI specialist network. Each AI agent specializes in specific medical domains, providing rapid assessment, clinical insights, and evidence-based recommendations for comprehensive patient care. Available 24/7 without wait times.
           </p>
 
           {/* Search Bar */}

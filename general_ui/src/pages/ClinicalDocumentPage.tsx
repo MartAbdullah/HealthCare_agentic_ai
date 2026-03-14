@@ -910,16 +910,24 @@ export default function ClinicalDocumentPage() {
 
       {/* Status Snackbar */}
       {showStatusSnackbar && processingState.status === 'awaiting_approval' && (
-        <div 
-          className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 hover:shadow-2xl transition-all cursor-pointer"
-          onClick={() => setShowStatusSnackbar(false)}
-        >
-          <div className="bg-yellow-600 border border-yellow-500 rounded-lg p-6 shadow-2xl flex items-center space-x-4">
-            <div className="w-2 h-2 rounded-full bg-yellow-200 animate-pulse"></div>
-            <p className="text-yellow-50 font-semibold">Status: Awaiting Review</p>
-            <p className="text-yellow-200 text-xs ml-2">Click anywhere to dismiss</p>
+        <>
+          {/* Overlay - Click anywhere to dismiss */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setShowStatusSnackbar(false)}
+          ></div>
+          {/* Snackbar */}
+          <div 
+            className="fixed top-8 left-1/2 transform -translate-x-1/2 z-50 hover:shadow-2xl transition-all cursor-pointer"
+            onClick={() => setShowStatusSnackbar(false)}
+          >
+            <div className="bg-yellow-600 border border-yellow-500 rounded-lg p-6 shadow-2xl flex items-center space-x-4">
+              <div className="w-2 h-2 rounded-full bg-yellow-200 animate-pulse"></div>
+              <p className="text-yellow-50 font-semibold">Status: Awaiting Review</p>
+              <p className="text-yellow-200 text-xs ml-2">Click anywhere to dismiss</p>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Footer */}
