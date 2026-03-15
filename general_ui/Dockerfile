@@ -14,8 +14,6 @@ ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 RUN npm run build
 
-RUN npm install express
-
 COPY server.js ./
 
 EXPOSE 3000

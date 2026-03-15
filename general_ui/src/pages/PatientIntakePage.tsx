@@ -57,9 +57,8 @@ export default function PatientIntakePage() {
 
   // Check localStorage for "Don't show again" preference
   useEffect(() => {
-    // Reset the tutorial snackbar on page load
-    localStorage.removeItem('basic-dontShowHowItWorks');
-    setShowHowItWorks(true);
+    const dontShow = localStorage.getItem('basic-dontShowHowItWorks') === 'true';
+    setShowHowItWorks(!dontShow);
   }, []);
 
   useEffect(() => {

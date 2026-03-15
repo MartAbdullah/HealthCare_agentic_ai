@@ -92,9 +92,8 @@ export default function ClinicalDocumentPage() {
 
   // Check localStorage for "Don't show again" preference
   useEffect(() => {
-    // Reset the tutorial snackbar on page load
-    localStorage.removeItem('advanced-dontShowHowItWorks');
-    setShowHowItWorks(true);
+    const dontShow = localStorage.getItem('advanced-dontShowHowItWorks') === 'true';
+    setShowHowItWorks(!dontShow);
   }, []);
 
   // Show status snackbar when awaiting approval

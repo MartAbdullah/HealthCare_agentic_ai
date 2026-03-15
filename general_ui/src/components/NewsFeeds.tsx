@@ -50,7 +50,8 @@ export default function NewsFeeds() {
         setError(null);
         
         // Fetch from backend endpoint
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+        // Use runtime config if available, otherwise fall back to environment variable
+        const API_BASE_URL = (window as any).API_CONFIG?.API_URL || process.env.REACT_APP_API_URL || 'http://localhost:8001';
         const response = await fetch(`${API_BASE_URL}/health-news`);
         
         if (!response.ok) {

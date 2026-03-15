@@ -29,6 +29,26 @@
   <body>
     <noscript>HealtCare Centre is a health center.</noscript>
     <div id="root"></div>
+    <script>
+      // Load API configuration dynamically from server
+      // This allows the API URL to be set at runtime via environment variables
+      window.API_CONFIG = window.API_CONFIG || {};
+      
+      fetch('/api/config', { method: 'GET' })
+        .then(res => res.json())
+        .then(config => {
+          window.API_CONFIG = config;
+          console.log('API Config loaded:', config);
+        })
+        .catch(err => {
+          // Fallback to build-time API URL if server config endpoint fails
+          console.warn('Failed to load API config from server, using build-time URL:', err);
+          window.API_CONFIG = {
+            API_URL: process.env.REACT_APP_API_URL || 'http://localhost:8001',
+            ENV: 'development'
+          };
+        });
+    </script>
     <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.

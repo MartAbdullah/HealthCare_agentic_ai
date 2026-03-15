@@ -48,6 +48,11 @@ coverage.xml
 *.cover
 *.py.cover
 .hypothesis/
+
+# Environment variables (sensitive data)
+.env
+.env.local
+.env.*.local
 .pytest_cache/
 cover/
 
