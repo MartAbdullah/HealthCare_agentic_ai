@@ -56,6 +56,7 @@ const PATIENTS: Record<string, Patient> = {
 
 // Specialist Database with Descriptions
 const SPECIALIST_DATABASE: Record<string, { fullName: string; description: string; emoji: string; color: string }> = {
+  'General Practitioner': { fullName: 'Dr. Sarah Johnson', description: 'Primary Care & Medical Assessment Specialist', emoji: '👨‍⚕️', color: 'from-blue-400 to-blue-500' },
   'Cardiologist': { fullName: 'Dr. Sarah Mitchell', description: 'Heart & Cardiovascular System Specialist', emoji: '❤️', color: 'from-red-500 to-red-600' },
   'Nephrologist': { fullName: 'Dr. Ahmed Hassan', description: 'Kidney & Renal System Specialist', emoji: '🫘', color: 'from-blue-500 to-blue-600' },
   'Endocrinologist': { fullName: 'Dr. Emily Johnson', description: 'Metabolic & Hormonal Disorders Specialist', emoji: '⚗️', color: 'from-purple-500 to-purple-600' },
@@ -66,6 +67,15 @@ const SPECIALIST_DATABASE: Record<string, { fullName: string; description: strin
   'Psychiatrist': { fullName: 'Dr. Maria Garcia', description: 'Mental Health & Psychology Specialist', emoji: '🧘', color: 'from-pink-500 to-pink-600' },
   'Rheumatologist': { fullName: 'Dr. David Kumar', description: 'Autoimmune & Joint Disorders Specialist', emoji: '🦴', color: 'from-orange-500 to-orange-600' },
   'Radiologist': { fullName: 'Dr. Emma Thompson', description: 'Medical Imaging & Diagnostics Expert', emoji: '🖼️', color: 'from-slate-500 to-slate-600' },
+  'Hematologist': { fullName: 'Dr. Robert Kumar', description: 'Blood Disorders & Hematology Specialist', emoji: '🩸', color: 'from-red-600 to-red-700' },
+  'Oncologist': { fullName: 'Dr. David Thompson', description: 'Cancer & Malignancy Specialist', emoji: '🎯', color: 'from-indigo-500 to-indigo-600' },
+  'Infectious Disease Specialist': { fullName: 'Dr. Jennifer Brown', description: 'Infection & Antimicrobial Therapy Expert', emoji: '🦠', color: 'from-yellow-500 to-yellow-600' },
+  'Vascular Surgeon': { fullName: 'Dr. Thomas Garcia', description: 'Vascular Pathology & Surgery Specialist', emoji: '🩺', color: 'from-rose-500 to-rose-600' },
+  'Cardiothoracic Surgeon': { fullName: 'Dr. William Foster', description: 'Cardiac & Thoracic Surgery Specialist', emoji: '🏥', color: 'from-red-400 to-red-600' },
+  'Dietitian': { fullName: 'Dr. Amanda Clark', description: 'Nutritional Assessment & Dietary Expert', emoji: '🥗', color: 'from-green-400 to-green-500' },
+  'Physiotherapist': { fullName: 'Dr. Christopher Scott', description: 'Physical Rehabilitation & Function Expert', emoji: '🏃', color: 'from-teal-500 to-teal-600' },
+  'Palliative Care Specialist': { fullName: 'Dr. Michelle Green', description: 'Symptom Management & Quality of Life Expert', emoji: '🌸', color: 'from-pink-400 to-pink-600' },
+  'Emergency Physician': { fullName: 'Dr. Richard Moore', description: 'Acute & Emergency Medicine Specialist', emoji: '🚑', color: 'from-red-600 to-red-700' },
 };
 
 export default function SpecialistConsultationPage({ specialistsCount }: SpecialistConsultationPageProps) {
