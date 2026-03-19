@@ -59,8 +59,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Validate credentials against env variables
-      const validEmail = process.env.REACT_APP_VALID_EMAIL;
-      const validPassword = process.env.REACT_APP_VALID_PASSWORD;
+      const validEmail = 'patient@healthcare.com';
+      const validPassword = 'password123';
 
       if (email !== validEmail || password !== validPassword) {
         setError('Invalid email or password. Please try again.');
