@@ -9,10 +9,9 @@ const app = express();
 // Locally: http://localhost:8001
 const BACKEND_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
 
-// Frontend API URL (what browsers should use)
-// In production: use backend API URL as the proxy endpoint
-// Locally: use localhost:3000
-const FRONTEND_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// Frontend API URL (what browsers should use - always localhost)
+// Proxy through this server
+const FRONTEND_API_URL = 'http://localhost:3000';
 
 // Serve static files from the build directory
 app.use(express.static(path.join(__dirname, 'build')));
@@ -46,11 +45,6 @@ app.use('/intermediate', createProxyMiddleware({
 }));
 
 app.use('/advanced', createProxyMiddleware({
-  target: BACKEND_API_URL,
-  changeOrigin: true,
-}));
-
-app.use('/login', createProxyMiddleware({
   target: BACKEND_API_URL,
   changeOrigin: true,
 }));
