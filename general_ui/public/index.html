@@ -34,7 +34,7 @@
       // This allows the API URL to be set at runtime via environment variables
       window.API_CONFIG = window.API_CONFIG || {};
       
-      fetch('/api/config', { method: 'GET' })
+      fetch('/api/config', { method: 'GET', cache: 'no-store' })
         .then(res => res.json())
         .then(config => {
           window.API_CONFIG = config;
