@@ -59,7 +59,7 @@ app.use('/login', createProxyMiddleware({
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
-
+// Start the server
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://0.0.0.0:${PORT}`);
